@@ -63,12 +63,15 @@ fun InventTrackApp() {
                     "Registrar movimiento" to { go(Routes.MOVEMENT_FORM) }, "Análisis y estadísticas" to { go(Routes.ANALYTICS) }))
             }
             composable(Routes.PRODUCTS) {
-                IntegrationScreen("Productos", listOf("Nuevo producto" to { go(Routes.PRODUCT_FORM) }, "Categorías" to { go(Routes.CATEGORIES) }))
+                ProductsScreen(
+                    onNewProduct = { go(Routes.PRODUCT_FORM) },
+                    onCategories = { go(Routes.CATEGORIES) }
+                )
             }
             composable(Routes.PRODUCT_FORM) { IntegrationScreen("Formulario de producto") }
             composable(Routes.CATEGORIES) { IntegrationScreen("Categorías") }
             composable(Routes.HISTORY) { IntegrationScreen("Historial de movimientos") }
-            composable(Routes.CHATBOT) { IntegrationScreen("Chatbot") }
+            composable(Routes.CHATBOT) { InvenBotScreen() }
             composable(Routes.MOVEMENT_FORM) { MovementScreen() }
             composable(Routes.ANALYTICS) { AnalyticsScreen() }
             composable(Routes.SETTINGS) {
