@@ -74,7 +74,10 @@ fun InventTrackApp() {
                 )
             }
             composable(Routes.PRODUCTS) {
-                IntegrationScreen("Productos", listOf("Nuevo producto" to { go(Routes.PRODUCT_FORM) }, "Categorías" to { go(Routes.CATEGORIES) }))
+                ProductsScreen(
+                    onNewProduct = { go(Routes.PRODUCT_FORM) },
+                    onCategories = { go(Routes.CATEGORIES) }
+                )
             }
             composable(Routes.PRODUCT_FORM) { IntegrationScreen("Formulario de producto") }
             composable(Routes.CATEGORIES) { IntegrationScreen("Categorías") }
@@ -83,7 +86,7 @@ fun InventTrackApp() {
                     onBackClick = { navController.popBackStack() }
                 )
             }
-            composable(Routes.CHATBOT) { IntegrationScreen("Chatbot") }
+            composable(Routes.CHATBOT) { InvenBotScreen() }
             composable(Routes.MOVEMENT_FORM) { MovementScreen() }
             composable(Routes.ANALYTICS) { AnalyticsScreen() }
             composable(Routes.SETTINGS) {
