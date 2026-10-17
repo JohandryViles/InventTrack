@@ -25,6 +25,11 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.inventtrack.ui.components.OutlinedSecondaryButton
+import com.inventtrack.ui.components.PrimaryButton
+import com.inventtrack.ui.theme.CriticalRed
+import com.inventtrack.ui.theme.SecondaryTeal
+import com.inventtrack.ui.theme.Shapes
 
 @Composable
 fun LoginScreen(
@@ -62,7 +67,7 @@ fun LoginScreen(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 480.dp)
+                .widthIn(max = 420.dp)
                 .fillMaxWidth()
                 .verticalScroll(rememberScrollState())
                 .padding(24.dp),
@@ -74,7 +79,7 @@ fun LoginScreen(
                 imageVector = Icons.Default.Inventory,
                 contentDescription = "Logo InventTrack",
                 modifier = Modifier.size(64.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = SecondaryTeal
             )
 
             Spacer(modifier = Modifier.height(12.dp))
@@ -108,6 +113,11 @@ fun LoginScreen(
                     Icon(imageVector = Icons.Default.Email, contentDescription = "Email")
                 },
                 isError = errorMessage != null && (email.trim().isEmpty() || !email.contains("@")),
+                shape = Shapes.medium,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = SecondaryTeal,
+                    focusedLabelColor = SecondaryTeal
+                ),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
@@ -142,6 +152,11 @@ fun LoginScreen(
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                 isError = errorMessage != null && (password.isEmpty() || password.length < 6),
+                shape = Shapes.medium,
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = SecondaryTeal,
+                    focusedLabelColor = SecondaryTeal
+                ),
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
@@ -161,7 +176,7 @@ fun LoginScreen(
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = error,
-                    color = MaterialTheme.colorScheme.error,
+                    color = CriticalRed,
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -174,36 +189,31 @@ fun LoginScreen(
             ) {
                 Text(
                     text = "¿Olvidaste tu contraseña?",
-                    style = MaterialTheme.typography.bodyMedium
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = SecondaryTeal
                 )
             }
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botón Iniciar Sesión
-            Button(
+            // Botón Iniciar Sesión usando componente reutilizable PrimaryButton
+            PrimaryButton(
+                text = "Iniciar sesión",
                 onClick = {
                     focusManager.clearFocus()
                     validateAndLogin()
                 },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp)
-            ) {
-                Text("Iniciar sesión", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Botón de acceso rápido modo demo
-            OutlinedButton(
+            // Botón de acceso rápido modo demo usando OutlinedSecondaryButton
+            OutlinedSecondaryButton(
+                text = "Acceder en modo demo",
                 onClick = onLoginClick,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(44.dp)
-            ) {
-                Text("Acceder en modo demo", fontSize = 14.sp)
-            }
+                modifier = Modifier.fillMaxWidth()
+            )
 
             Spacer(modifier = Modifier.height(16.dp))
 
@@ -220,7 +230,8 @@ fun LoginScreen(
                 TextButton(onClick = onRegisterClick) {
                     Text(
                         text = "Crear una cuenta",
-                        fontWeight = FontWeight.Bold
+                        fontWeight = FontWeight.Bold,
+                        color = SecondaryTeal
                     )
                 }
             }
@@ -246,6 +257,11 @@ fun LoginScreen(
                             onValueChange = { recoveryEmail = it },
                             label = { Text("Correo electrónico") },
                             singleLine = true,
+                            shape = Shapes.medium,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = SecondaryTeal,
+                                focusedLabelColor = SecondaryTeal
+                            ),
                             modifier = Modifier.fillMaxWidth()
                         )
                     }
@@ -262,7 +278,8 @@ fun LoginScreen(
                             if (recoveryEmail.isNotBlank()) {
                                 recoverySent = true
                             }
-                        }
+                        },
+                        colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
                     ) {
                         Text("Enviar enlace")
                     }

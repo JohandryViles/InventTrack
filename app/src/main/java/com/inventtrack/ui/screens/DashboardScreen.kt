@@ -20,6 +20,12 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.inventtrack.ui.theme.AvailableGreen
+import com.inventtrack.ui.theme.CriticalRed
+import com.inventtrack.ui.theme.LowOrange
+import com.inventtrack.ui.theme.PrimaryDarkBlue
+import com.inventtrack.ui.theme.SecondaryTeal
+import com.inventtrack.ui.theme.Shapes
 
 @Composable
 fun DashboardScreen(
@@ -37,7 +43,7 @@ fun DashboardScreen(
     ) {
         Column(
             modifier = Modifier
-                .widthIn(max = 840.dp)
+                .widthIn(max = 800.dp)
                 .fillMaxWidth()
                 .padding(16.dp)
                 .verticalScroll(scrollState)
@@ -51,7 +57,7 @@ fun DashboardScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Surface(
                         shape = CircleShape,
-                        color = MaterialTheme.colorScheme.primaryContainer,
+                        color = SecondaryTeal.copy(alpha = 0.15f),
                         modifier = Modifier.size(48.dp)
                     ) {
                         Box(contentAlignment = Alignment.Center) {
@@ -59,7 +65,7 @@ fun DashboardScreen(
                                 imageVector = Icons.Default.Person,
                                 contentDescription = "Perfil",
                                 modifier = Modifier.size(28.dp),
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
+                                tint = SecondaryTeal
                             )
                         }
                     }
@@ -73,19 +79,21 @@ fun DashboardScreen(
                         Text(
                             text = "Hola, Andy \uD83D\uDC4B",
                             fontSize = 20.sp,
-                            fontWeight = FontWeight.Bold
+                            fontWeight = FontWeight.Bold,
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
                 IconButton(onClick = { showNotificationDialog = true }) {
                     BadgedBox(
                         badge = {
-                            Badge { Text("1") }
+                            Badge(containerColor = CriticalRed) { Text("1", color = Color.White) }
                         }
                     ) {
                         Icon(
                             imageVector = Icons.Default.Notifications,
-                            contentDescription = "Notificaciones"
+                            contentDescription = "Notificaciones",
+                            tint = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -95,11 +103,11 @@ fun DashboardScreen(
 
             // Alerta roja de stock crítico
             Card(
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.errorContainer),
+                colors = CardDefaults.cardColors(containerColor = CriticalRed.copy(alpha = 0.12f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { showAlertDetailDialog = true },
-                shape = RoundedCornerShape(16.dp)
+                shape = Shapes.medium
             ) {
                 Row(
                     modifier = Modifier.padding(16.dp),
@@ -108,7 +116,7 @@ fun DashboardScreen(
                     Icon(
                         imageVector = Icons.Default.Warning,
                         contentDescription = "Alerta",
-                        tint = MaterialTheme.colorScheme.error,
+                        tint = CriticalRed,
                         modifier = Modifier.size(28.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
@@ -116,12 +124,12 @@ fun DashboardScreen(
                         Text(
                             text = "Alerta de Stock Crítico",
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.error,
+                            color = CriticalRed,
                             fontWeight = FontWeight.Bold
                         )
                         Text(
                             text = "Jarabe pediátrico alcanzó el stock mínimo",
-                            color = MaterialTheme.colorScheme.onErrorContainer,
+                            color = MaterialTheme.colorScheme.onSurface,
                             fontWeight = FontWeight.SemiBold,
                             fontSize = 14.sp
                         )
@@ -129,7 +137,7 @@ fun DashboardScreen(
                     Text(
                         text = "Ver",
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error,
+                        color = CriticalRed,
                         fontWeight = FontWeight.Bold
                     )
                 }
@@ -141,7 +149,8 @@ fun DashboardScreen(
             Text(
                 text = "Resumen del inventario",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
 
@@ -153,14 +162,16 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f),
                     title = "Total productos",
                     value = "148",
-                    icon = Icons.Default.Inventory2
+                    icon = Icons.Default.Inventory2,
+                    valueColor = SecondaryTeal
                 )
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Stock bajo",
                     value = "3",
                     isAlert = true,
-                    icon = Icons.Default.ReportProblem
+                    icon = Icons.Default.ReportProblem,
+                    valueColor = LowOrange
                 )
             }
             Spacer(modifier = Modifier.height(12.dp))
@@ -172,14 +183,14 @@ fun DashboardScreen(
                     modifier = Modifier.weight(1f),
                     title = "Entradas hoy",
                     value = "+12",
-                    valueColor = Color(0xFF2E7D32),
+                    valueColor = AvailableGreen,
                     icon = Icons.Default.ArrowDownward
                 )
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Salidas hoy",
                     value = "-8",
-                    valueColor = Color(0xFFC62828),
+                    valueColor = CriticalRed,
                     icon = Icons.Default.ArrowUpward
                 )
             }
@@ -190,7 +201,8 @@ fun DashboardScreen(
             Text(
                 text = "Accesos rápidos",
                 fontWeight = FontWeight.Bold,
-                fontSize = 18.sp
+                fontSize = 18.sp,
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
             Row(
@@ -225,7 +237,8 @@ fun DashboardScreen(
                 Text(
                     text = "Últimos movimientos",
                     fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
+                    fontSize = 18.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
                     text = "Hoy",
@@ -276,7 +289,7 @@ fun DashboardScreen(
             },
             confirmButton = {
                 TextButton(onClick = { showNotificationDialog = false }) {
-                    Text("Cerrar")
+                    Text("Cerrar", color = SecondaryTeal)
                 }
             }
         )
@@ -296,10 +309,13 @@ fun DashboardScreen(
                 }
             },
             confirmButton = {
-                Button(onClick = {
-                    showAlertDetailDialog = false
-                    onRegisterMovementClick()
-                }) {
+                Button(
+                    onClick = {
+                        showAlertDetailDialog = false
+                        onRegisterMovementClick()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
+                ) {
                     Text("Registrar entrada")
                 }
             },
@@ -321,13 +337,9 @@ fun SummaryCard(
     isAlert: Boolean = false,
     valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
-    Card(
+    ElevatedCard(
         modifier = modifier.height(108.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = if (isAlert) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
-            else MaterialTheme.colorScheme.surfaceVariant
-        ),
-        shape = RoundedCornerShape(16.dp)
+        shape = Shapes.medium
     ) {
         Column(
             modifier = Modifier
@@ -350,14 +362,14 @@ fun SummaryCard(
                     imageVector = icon,
                     contentDescription = null,
                     modifier = Modifier.size(18.dp),
-                    tint = if (isAlert) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = if (isAlert) LowOrange else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Text(
                 text = value,
                 fontSize = 24.sp,
                 fontWeight = FontWeight.Bold,
-                color = if (isAlert) MaterialTheme.colorScheme.error else valueColor
+                color = valueColor
             )
         }
     }
@@ -369,20 +381,25 @@ fun QuickAccessButton(icon: ImageVector, label: String, onClick: () -> Unit) {
         FilledTonalIconButton(
             onClick = onClick,
             modifier = Modifier.size(60.dp),
-            shape = RoundedCornerShape(16.dp)
+            shape = Shapes.medium,
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = SecondaryTeal.copy(alpha = 0.15f),
+                contentColor = SecondaryTeal
+            )
         ) {
             Icon(
                 imageVector = icon,
                 contentDescription = label,
                 modifier = Modifier.size(28.dp),
-                tint = MaterialTheme.colorScheme.primary
+                tint = SecondaryTeal
             )
         }
         Spacer(modifier = Modifier.height(6.dp))
         Text(
             text = label,
             fontSize = 13.sp,
-            fontWeight = FontWeight.Medium
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurface
         )
     }
 }
@@ -393,8 +410,8 @@ fun MovementItem(name: String, time: String, quantity: String, isPositive: Boole
         modifier = Modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.4f)),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        shape = Shapes.medium
     ) {
         Row(
             modifier = Modifier
@@ -408,13 +425,14 @@ fun MovementItem(name: String, time: String, quantity: String, isPositive: Boole
                     modifier = Modifier
                         .size(10.dp)
                         .clip(CircleShape)
-                        .background(if (isPositive) Color(0xFF2E7D32) else Color(0xFFE65100))
+                        .background(if (isPositive) AvailableGreen else CriticalRed)
                 )
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
                     text = name,
                     fontWeight = FontWeight.Medium,
-                    fontSize = 14.sp
+                    fontSize = 14.sp,
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -428,7 +446,7 @@ fun MovementItem(name: String, time: String, quantity: String, isPositive: Boole
                     text = quantity,
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
-                    color = if (isPositive) Color(0xFF2E7D32) else Color(0xFFC62828)
+                    color = if (isPositive) AvailableGreen else CriticalRed
                 )
             }
         }

@@ -17,6 +17,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusDirection
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
@@ -25,6 +26,12 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.inventtrack.ui.components.OutlinedSecondaryButton
+import com.inventtrack.ui.components.PrimaryButton
+import com.inventtrack.ui.theme.CriticalRed
+import com.inventtrack.ui.theme.PrimaryDarkBlue
+import com.inventtrack.ui.theme.SecondaryTeal
+import com.inventtrack.ui.theme.Shapes
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -65,15 +72,17 @@ fun RegisterScreen(
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Crear cuenta", fontWeight = FontWeight.Bold) },
+                title = { Text("Crear cuenta", fontWeight = FontWeight.Bold, color = Color.White) },
                 navigationIcon = {
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
+                            contentDescription = "Volver",
+                            tint = Color.White
                         )
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryDarkBlue)
             )
         }
     ) { paddingValues ->
@@ -86,7 +95,7 @@ fun RegisterScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = 520.dp)
+                    .widthIn(max = 440.dp)
                     .fillMaxWidth()
                     .verticalScroll(rememberScrollState())
                     .padding(24.dp),
@@ -115,6 +124,11 @@ fun RegisterScreen(
                         Icon(imageVector = Icons.Default.Person, contentDescription = "Nombre")
                     },
                     isError = errorMessage != null && (name.trim().isEmpty() || name.trim().length < 3),
+                    shape = Shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SecondaryTeal,
+                        focusedLabelColor = SecondaryTeal
+                    ),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next
@@ -141,6 +155,11 @@ fun RegisterScreen(
                         Icon(imageVector = Icons.Default.Email, contentDescription = "Correo")
                     },
                     isError = errorMessage != null && (email.trim().isEmpty() || !email.contains("@")),
+                    shape = Shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SecondaryTeal,
+                        focusedLabelColor = SecondaryTeal
+                    ),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
@@ -175,6 +194,11 @@ fun RegisterScreen(
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     isError = errorMessage != null && (password.isEmpty() || password.length < 8),
+                    shape = Shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SecondaryTeal,
+                        focusedLabelColor = SecondaryTeal
+                    ),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next
@@ -209,6 +233,11 @@ fun RegisterScreen(
                     },
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     isError = errorMessage != null && (confirmPassword != password),
+                    shape = Shapes.medium,
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = SecondaryTeal,
+                        focusedLabelColor = SecondaryTeal
+                    ),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
@@ -228,7 +257,7 @@ fun RegisterScreen(
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = error,
-                        color = MaterialTheme.colorScheme.error,
+                        color = CriticalRed,
                         style = MaterialTheme.typography.bodySmall,
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -236,30 +265,24 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Botón Registrarme
-                Button(
+                // Botón Registrarme usando componente PrimaryButton
+                PrimaryButton(
+                    text = "Registrarme",
                     onClick = {
                         focusManager.clearFocus()
                         validateAndRegister()
                     },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(50.dp)
-                ) {
-                    Text("Registrarme", fontSize = 16.sp, fontWeight = FontWeight.SemiBold)
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botón volver / ya tengo cuenta
-                OutlinedButton(
+                // Botón volver a iniciar sesión usando OutlinedSecondaryButton
+                OutlinedSecondaryButton(
+                    text = "Volver a iniciar sesión",
                     onClick = onBackClick,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(44.dp)
-                ) {
-                    Text("Volver a iniciar sesión")
-                }
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }
@@ -278,7 +301,8 @@ fun RegisterScreen(
                     onClick = {
                         showSuccessDialog = false
                         onRegisterClick()
-                    }
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
                 ) {
                     Text("Continuar")
                 }

@@ -3,7 +3,6 @@ package com.inventtrack.ui.screens
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -19,6 +18,11 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.inventtrack.ui.theme.AvailableGreen
+import com.inventtrack.ui.theme.CriticalRed
+import com.inventtrack.ui.theme.PrimaryDarkBlue
+import com.inventtrack.ui.theme.SecondaryTeal
+import com.inventtrack.ui.theme.Shapes
 
 data class HistoryMovement(
     val id: Int,
@@ -90,11 +94,11 @@ fun MovementHistoryScreen(
             TopAppBar(
                 title = {
                     Column {
-                        Text("Historial de movimientos", fontWeight = FontWeight.Bold, fontSize = 20.sp)
+                        Text("Historial de movimientos", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
                         Text(
                             "Registro completo de entradas y salidas",
                             fontSize = 12.sp,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = Color.White.copy(alpha = 0.8f)
                         )
                     }
                 },
@@ -102,7 +106,8 @@ fun MovementHistoryScreen(
                     IconButton(onClick = onBackClick) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = "Volver"
+                            contentDescription = "Volver",
+                            tint = Color.White
                         )
                     }
                 },
@@ -113,10 +118,11 @@ fun MovementHistoryScreen(
                             selectedType = "Todos"
                             selectedProduct = "Todos"
                         }) {
-                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Limpiar filtros")
+                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Limpiar filtros", tint = Color.White)
                         }
                     }
-                }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = PrimaryDarkBlue)
             )
         }
     ) { paddingValues ->
@@ -128,7 +134,7 @@ fun MovementHistoryScreen(
         ) {
             Column(
                 modifier = Modifier
-                    .widthIn(max = 840.dp)
+                    .widthIn(max = 800.dp)
                     .fillMaxWidth()
                     .padding(horizontal = 16.dp)
                     .verticalScroll(rememberScrollState())
@@ -144,7 +150,7 @@ fun MovementHistoryScreen(
                     Icon(
                         imageVector = Icons.Default.FilterList,
                         contentDescription = "Filtros",
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = SecondaryTeal,
                         modifier = Modifier.size(20.dp)
                     )
 
@@ -239,7 +245,8 @@ fun MovementHistoryScreen(
                             Text(
                                 text = "No se encontraron movimientos",
                                 style = MaterialTheme.typography.titleMedium,
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                             Text(
                                 text = "Intenta modificando o limpiando los filtros seleccionados.",
@@ -251,9 +258,10 @@ fun MovementHistoryScreen(
                                     selectedDate = "Todas"
                                     selectedType = "Todos"
                                     selectedProduct = "Todos"
-                                }
+                                },
+                                colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
                             ) {
-                                Text("Restablecer filtros")
+                                Text("Restablecer filtros", color = Color.White)
                             }
                         }
                     }
@@ -298,7 +306,7 @@ fun MovementHistoryScreen(
             },
             confirmButton = {
                 TextButton(onClick = { selectedMovementDetail = null }) {
-                    Text("Cerrar")
+                    Text("Cerrar", color = SecondaryTeal)
                 }
             }
         )
@@ -312,9 +320,9 @@ fun FilterChipButton(
     onClick: () -> Unit
 ) {
     Surface(
-        color = if (isActive) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-        contentColor = if (isActive) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-        shape = RoundedCornerShape(8.dp),
+        color = if (isActive) SecondaryTeal else MaterialTheme.colorScheme.surfaceVariant,
+        contentColor = if (isActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+        shape = Shapes.small,
         modifier = Modifier
             .height(36.dp)
             .clickable { onClick() }
@@ -348,8 +356,8 @@ fun HistoryItemCard(
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable { onClick() },
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.45f)),
-        shape = RoundedCornerShape(12.dp)
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+        shape = Shapes.medium
     ) {
         Row(
             modifier = Modifier
@@ -362,15 +370,15 @@ fun HistoryItemCard(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.weight(1f)
             ) {
-                // Etiqueta visual de Entrada/Salida
+                // Etiqueta visual de Entrada/Salida con estilo consistente
                 Surface(
-                    color = if (movement.isEntry) Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
-                    shape = RoundedCornerShape(6.dp),
+                    color = if (movement.isEntry) AvailableGreen.copy(alpha = 0.18f) else CriticalRed.copy(alpha = 0.18f),
+                    shape = Shapes.small,
                     modifier = Modifier.padding(end = 12.dp)
                 ) {
                     Text(
                         text = movement.type,
-                        color = if (movement.isEntry) Color(0xFF2E7D32) else Color(0xFFE65100),
+                        color = if (movement.isEntry) AvailableGreen else CriticalRed,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -393,7 +401,7 @@ fun HistoryItemCard(
             Text(
                 text = movement.quantity,
                 fontWeight = FontWeight.Bold,
-                color = if (movement.isEntry) Color(0xFF2E7D32) else Color(0xFFC62828),
+                color = if (movement.isEntry) AvailableGreen else CriticalRed,
                 fontSize = 17.sp,
                 modifier = Modifier.padding(start = 8.dp)
             )
