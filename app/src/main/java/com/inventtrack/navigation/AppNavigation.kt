@@ -51,23 +51,38 @@ fun InventTrackApp() {
                 }
             }
             composable(Routes.LOGIN) {
-                IntegrationScreen("Iniciar sesión", listOf("Entrar en modo demo" to {
-                    navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
-                }, "Crear cuenta" to { go(Routes.REGISTER) }))
+                LoginScreen(
+                    onLoginClick = {
+                        navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                    },
+                    onRegisterClick = { go(Routes.REGISTER) }
+                )
             }
             composable(Routes.REGISTER) {
-                IntegrationScreen("Crear cuenta", listOf("Volver a iniciar sesión" to { navController.popBackStack() }))
+                RegisterScreen(
+                    onBackClick = { navController.popBackStack() },
+                    onRegisterClick = {
+                        navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
+                    }
+                )
             }
             composable(Routes.HOME) {
-                IntegrationScreen("Inicio", listOf("Ver productos" to { go(Routes.PRODUCTS) },
-                    "Registrar movimiento" to { go(Routes.MOVEMENT_FORM) }, "Análisis y estadísticas" to { go(Routes.ANALYTICS) }))
+                DashboardScreen(
+                    onRegisterMovementClick = { go(Routes.MOVEMENT_FORM) },
+                    onAddProductClick = { go(Routes.PRODUCT_FORM) },
+                    onOpenChatbotClick = { go(Routes.CHATBOT) }
+                )
             }
             composable(Routes.PRODUCTS) {
                 IntegrationScreen("Productos", listOf("Nuevo producto" to { go(Routes.PRODUCT_FORM) }, "Categorías" to { go(Routes.CATEGORIES) }))
             }
             composable(Routes.PRODUCT_FORM) { IntegrationScreen("Formulario de producto") }
             composable(Routes.CATEGORIES) { IntegrationScreen("Categorías") }
-            composable(Routes.HISTORY) { IntegrationScreen("Historial de movimientos") }
+            composable(Routes.HISTORY) {
+                MovementHistoryScreen(
+                    onBackClick = { navController.popBackStack() }
+                )
+            }
             composable(Routes.CHATBOT) { IntegrationScreen("Chatbot") }
             composable(Routes.MOVEMENT_FORM) { MovementScreen() }
             composable(Routes.ANALYTICS) { AnalyticsScreen() }
