@@ -1,5 +1,6 @@
 package com.inventtrack.navigation
 
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -11,7 +12,10 @@ import androidx.navigation.compose.*
 import com.inventtrack.ui.screens.*
 
 @Composable
-fun InventTrackApp() {
+fun InventTrackApp(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    onDarkThemeChange: (Boolean) -> Unit = {}
+) {
     val navController = rememberNavController()
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
@@ -93,14 +97,19 @@ fun InventTrackApp() {
             composable(Routes.MOVEMENT_FORM) { MovementScreen() }
             composable(Routes.ANALYTICS) { AnalyticsScreen() }
             composable(Routes.SETTINGS) {
-                IntegrationScreen("Más", listOf("Categorías" to { go(Routes.CATEGORIES) },
-                    "Historial" to { go(Routes.HISTORY) }, "Análisis y estadísticas" to { go(Routes.ANALYTICS) },
-                    "Cerrar sesión demo" to {
+                SettingsScreen(
+                    darkTheme = darkTheme,
+                    onDarkThemeChange = onDarkThemeChange,
+                    onCategoriesClick = { go(Routes.CATEGORIES) },
+                    onHistoryClick = { go(Routes.HISTORY) },
+                    onAnalyticsClick = { go(Routes.ANALYTICS) },
+                    onLogoutClick = {
                         navController.navigate(Routes.LOGIN) {
                             popUpTo(navController.graph.id) { inclusive = true }
                             launchSingleTop = true
                         }
-                    }))
+                    }
+                )
             }
         }
     }
