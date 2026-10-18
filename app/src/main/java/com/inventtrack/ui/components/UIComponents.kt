@@ -43,7 +43,7 @@ fun OutlinedSecondaryButton(text: String, onClick: () -> Unit, modifier: Modifie
             .widthIn(max = 400.dp)
             .height(50.dp)
     ) {
-        Text(text = text, color = PrimaryDarkBlue, fontWeight = FontWeight.Bold)
+        Text(text = text, fontWeight = FontWeight.Bold)
     }
 }
 

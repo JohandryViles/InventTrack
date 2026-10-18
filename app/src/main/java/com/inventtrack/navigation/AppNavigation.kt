@@ -7,6 +7,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.*
 import com.inventtrack.ui.screens.*
@@ -17,6 +18,8 @@ fun InventTrackApp(
     onDarkThemeChange: (Boolean) -> Unit = {}
 ) {
     val navController = rememberNavController()
+    var userName by rememberSaveable { mutableStateOf("Usuario Demo") }
+    var userEmail by rememberSaveable { mutableStateOf("demo@inventtrack.com") }
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
     val isSplash = route == Routes.SPLASH
@@ -59,7 +62,9 @@ fun InventTrackApp(
             }
             composable(Routes.LOGIN) {
                 LoginScreen(
-                    onLoginClick = {
+                    onLoginClick = { name, email ->
+                        userName = name
+                        userEmail = email
                         navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
                     },
                     onRegisterClick = { go(Routes.REGISTER) }
@@ -68,13 +73,16 @@ fun InventTrackApp(
             composable(Routes.REGISTER) {
                 RegisterScreen(
                     onBackClick = { navController.popBackStack() },
-                    onRegisterClick = {
+                    onRegisterClick = { name, email ->
+                        userName = name
+                        userEmail = email
                         navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
                     }
                 )
             }
             composable(Routes.HOME) {
                 DashboardScreen(
+                    userName = userName,
                     onRegisterMovementClick = { go(Routes.MOVEMENT_FORM) },
                     onAddProductClick = { go(Routes.PRODUCT_FORM) },
                     onOpenChatbotClick = { go(Routes.CHATBOT) }
@@ -98,6 +106,12 @@ fun InventTrackApp(
             composable(Routes.ANALYTICS) { AnalyticsScreen() }
             composable(Routes.SETTINGS) {
                 SettingsScreen(
+                    userName = userName,
+                    userEmail = userEmail,
+                    onProfileSave = { name, email ->
+                        userName = name
+                        userEmail = email
+                    },
                     darkTheme = darkTheme,
                     onDarkThemeChange = onDarkThemeChange,
                     onCategoriesClick = { go(Routes.CATEGORIES) },

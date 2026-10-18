@@ -31,6 +31,9 @@ import com.inventtrack.ui.theme.SurfaceLight
 
 @Composable
 fun SettingsScreen(
+    userName: String,
+    userEmail: String,
+    onProfileSave: (name: String, email: String) -> Unit,
     darkTheme: Boolean,
     onDarkThemeChange: (Boolean) -> Unit,
     onCategoriesClick: () -> Unit,
@@ -38,9 +41,6 @@ fun SettingsScreen(
     onAnalyticsClick: () -> Unit,
     onLogoutClick: () -> Unit
 ) {
-    // Estado local de la sesion (simulacion de demo)
-    var userName by rememberSaveable { mutableStateOf("Usuario Demo") }
-    var userEmail by rememberSaveable { mutableStateOf("demo@inventtrack.com") }
     var notificationsEnabled by rememberSaveable { mutableStateOf(true) }
     var localSaveEnabled by rememberSaveable { mutableStateOf(true) }
 
@@ -156,10 +156,7 @@ fun SettingsScreen(
         EditProfileDialog(
             initialName = userName,
             initialEmail = userEmail,
-            onSave = { name, email ->
-                userName = name
-                userEmail = email
-            },
+            onSave = onProfileSave,
             onDismiss = { showEditProfileDialog = false }
         )
     }

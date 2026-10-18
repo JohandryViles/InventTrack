@@ -29,6 +29,7 @@ import com.inventtrack.ui.theme.Shapes
 
 @Composable
 fun DashboardScreen(
+    userName: String,
     onRegisterMovementClick: () -> Unit,
     onAddProductClick: () -> Unit,
     onOpenChatbotClick: () -> Unit
@@ -77,7 +78,7 @@ fun DashboardScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Hola, Andy \uD83D\uDC4B",
+                            text = "Hola, $userName \uD83D\uDC4B",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface

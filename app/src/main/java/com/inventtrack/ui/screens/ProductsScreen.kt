@@ -36,10 +36,10 @@ fun ProductsScreen(onNewProduct: () -> Unit, onCategories: () -> Unit) {
 
         Spacer(modifier = Modifier.height(8.dp))
 
-        ProductCard(name = "Cuaderno A5 Anillado", stock = 45, level = StockLevel.DISPONIBLE)
-        ProductCard(name = "Bolígrafo Azul 0.7mm", stock = 12, level = StockLevel.BAJO)
-        ProductCard(name = "Carpeta de Archivo Oficio", stock = 3, level = StockLevel.CRITICO)
-        ProductCard(name = "Azitromicina 500mg", stock = 5, level = StockLevel.BAJO)
         ProductCard(name = "Paracetamol 500mg", stock = 60, level = StockLevel.DISPONIBLE)
+        ProductCard(name = "Ibuprofeno 400mg", stock = 18, level = StockLevel.DISPONIBLE)
+        ProductCard(name = "Azitromicina 500mg", stock = 5, level = StockLevel.BAJO)
+        ProductCard(name = "Suero fisiológico", stock = 45, level = StockLevel.DISPONIBLE)
+        ProductCard(name = "Jarabe pediátrico", stock = 2, level = StockLevel.CRITICO)
     }
 }

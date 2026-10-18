@@ -31,7 +31,7 @@ fun AnalyticsScreen() {
     val entryColor = MaterialTheme.colorScheme.primary
     val exitColor = MaterialTheme.colorScheme.secondary
     val categoryColors = listOf(entryColor, exitColor, Color(0xFF6489C5))
-    val categoryNames = listOf("Papelería", "Escritura", "Archivo")
+    val categoryNames = listOf("Analgésicos", "Antibióticos", "Jarabes")
     ScreenContent("Análisis y estadísticas") {
         Text("Datos de ejemplo independientes del formulario de movimientos.")
         TabRow(selectedTabIndex = period) {
@@ -88,8 +88,8 @@ fun AnalyticsScreen() {
         Text("Rotación de inventario", style = MaterialTheme.typography.titleLarge)
         Text("Salidas del período / inventario promedio (mock).")
         BoxWithConstraints(Modifier.fillMaxWidth()) {
-            val values = listOf("Cuadernos" to listOf("1,8", "3,2", "12,4")[period],
-                "Bolígrafos" to listOf("2,4", "4,1", "16,8")[period], "Carpetas" to listOf("0,9", "1,7", "7,2")[period])
+            val values = listOf("Analgésicos" to listOf("1,8", "3,2", "12,4")[period],
+                "Antibióticos" to listOf("2,4", "4,1", "16,8")[period], "Jarabes" to listOf("0,9", "1,7", "7,2")[period])
             if (maxWidth < 520.dp) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { values.forEach { RotationCard(it.first, it.second, Modifier.fillMaxWidth()) } }
             } else {

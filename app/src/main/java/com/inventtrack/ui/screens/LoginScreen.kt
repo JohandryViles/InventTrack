@@ -33,7 +33,7 @@ import com.inventtrack.ui.theme.Shapes
 
 @Composable
 fun LoginScreen(
-    onLoginClick: () -> Unit,
+    onLoginClick: (name: String, email: String) -> Unit,
     onRegisterClick: () -> Unit
 ) {
     // Validaciones simples con remember y mutableStateOf
@@ -55,7 +55,7 @@ fun LoginScreen(
         }
 
         if (errorMessage == null) {
-            onLoginClick()
+            onLoginClick(displayNameFromEmail(email), email.trim())
         }
     }
 
@@ -211,7 +211,7 @@ fun LoginScreen(
             // Botón de acceso rápido modo demo usando OutlinedSecondaryButton
             OutlinedSecondaryButton(
                 text = "Acceder en modo demo",
-                onClick = onLoginClick,
+                onClick = { onLoginClick("Usuario Demo", "demo@inventtrack.com") },
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -295,3 +295,11 @@ fun LoginScreen(
         )
     }
 }
+
+private fun displayNameFromEmail(email: String): String =
+    email.substringBefore("@")
+        .split('.', '_', '-')
+        .map { it.trim() }
+        .filter { it.isNotEmpty() }
+        .joinToString(" ") { it.replaceFirstChar { first -> first.uppercaseChar() } }
+        .ifBlank { "Usuario" }

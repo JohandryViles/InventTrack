@@ -37,7 +37,7 @@ import com.inventtrack.ui.theme.Shapes
 @Composable
 fun RegisterScreen(
     onBackClick: () -> Unit,
-    onRegisterClick: () -> Unit
+    onRegisterClick: (name: String, email: String) -> Unit
 ) {
     // Validaciones simples con remember y mutableStateOf
     var name by remember { mutableStateOf("") }
@@ -292,7 +292,7 @@ fun RegisterScreen(
         AlertDialog(
             onDismissRequest = {
                 showSuccessDialog = false
-                onRegisterClick()
+                onRegisterClick(name.trim(), email.trim())
             },
             title = { Text("¡Registro exitoso!") },
             text = { Text("Tu cuenta ha sido creada correctamente con el nombre $name. Ya puedes comenzar a gestionar tu inventario.") },
@@ -300,7 +300,7 @@ fun RegisterScreen(
                 Button(
                     onClick = {
                         showSuccessDialog = false
-                        onRegisterClick()
+                        onRegisterClick(name.trim(), email.trim())
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
                 ) {

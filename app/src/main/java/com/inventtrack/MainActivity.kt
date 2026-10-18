@@ -17,7 +17,8 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            var darkTheme by rememberSaveable { mutableStateOf(isSystemInDarkTheme()) }
+            val systemInDark = isSystemInDarkTheme()
+            var darkTheme by rememberSaveable { mutableStateOf(systemInDark) }
             InventTrackTheme(darkTheme = darkTheme) {
                 InventTrackApp(
                     darkTheme = darkTheme,

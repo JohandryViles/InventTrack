@@ -15,8 +15,8 @@ import java.time.format.DateTimeFormatter
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MovementScreen() {
-    val products = listOf("Cuaderno A5", "Bolígrafo azul", "Carpeta oficio")
-    var stocks by rememberSaveable { mutableStateOf(listOf(24, 60, 18)) }
+    val products = listOf("Paracetamol 500mg", "Ibuprofeno 400mg", "Azitromicina 500mg", "Suero fisiológico", "Jarabe pediátrico")
+    var stocks by rememberSaveable { mutableStateOf(listOf(60, 18, 5, 45, 2)) }
     var type by rememberSaveable { mutableStateOf("Entrada") }
     var product by rememberSaveable { mutableStateOf(-1) }
     var quantity by rememberSaveable { mutableStateOf("") }
