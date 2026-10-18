@@ -8,15 +8,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.*
-import com.inventtrack.ui.components.ScreenContent
 import com.inventtrack.ui.screens.*
-import kotlinx.coroutines.delay
 
 @Composable
 fun InventTrackApp() {
     val navController = rememberNavController()
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
+    val isSplash = route == Routes.SPLASH
     val authenticated = route != null && route !in listOf(Routes.SPLASH, Routes.LOGIN, Routes.REGISTER)
     val tabs = listOf(
         Triple(Routes.HOME, "Inicio", Icons.Default.Home),
@@ -42,13 +41,17 @@ fun InventTrackApp() {
             }
         }
     }) { padding ->
-        NavHost(navController, startDestination = Routes.SPLASH, modifier = Modifier.padding(padding)) {
+        NavHost(
+            navController,
+            startDestination = Routes.SPLASH,
+            modifier = if (isSplash) Modifier else Modifier.padding(padding)
+        ) {
             composable(Routes.SPLASH) {
-                ScreenContent("InventTrack") { Text("Tu inventario, bajo control"); CircularProgressIndicator() }
-                LaunchedEffect(Unit) {
-                    delay(900)
-                    navController.navigate(Routes.LOGIN) { popUpTo(Routes.SPLASH) { inclusive = true } }
-                }
+                SplashScreen(
+                    onTimeout = {
+                        navController.navigate(Routes.LOGIN) { popUpTo(Routes.SPLASH) { inclusive = true } }
+                    }
+                )
             }
             composable(Routes.LOGIN) {
                 LoginScreen(
