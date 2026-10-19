@@ -89,13 +89,18 @@ fun InventTrackApp(
                 )
             }
             composable(Routes.PRODUCTS) {
-                ProductsScreen(
-                    onNewProduct = { go(Routes.PRODUCT_FORM) },
-                    onCategories = { go(Routes.CATEGORIES) }
+                ProductListScreen(
+                    onNavigateToAdd = { go(Routes.PRODUCT_FORM) },
+                    onNavigateToEdit = { _ -> go(Routes.PRODUCT_FORM) }
                 )
             }
-            composable(Routes.PRODUCT_FORM) { IntegrationScreen("Formulario de producto") }
-            composable(Routes.CATEGORIES) { IntegrationScreen("Categorías") }
+            composable(Routes.PRODUCT_FORM) { 
+                ProductFormScreen(
+                    onNavigateBack = { navController.popBackStack() },
+                    onSave = { _ -> navController.popBackStack() }
+                ) 
+            }
+            composable(Routes.CATEGORIES) { CategoryScreen() }
             composable(Routes.HISTORY) {
                 MovementHistoryScreen(
                     onBackClick = { navController.popBackStack() }
