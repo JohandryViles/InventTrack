@@ -18,7 +18,7 @@ import com.inventtrack.ui.components.ScreenContent
 
 @Composable
 fun AnalyticsScreen() {
-    var period by rememberSaveable { mutableStateOf(0) }
+    var period by rememberSaveable { mutableIntStateOf(0) }
     val periods = listOf("Semanal", "Mensual", "Anual")
     val labels = when (period) {
         0 -> listOf("L", "M", "X", "J", "V", "S", "D")
@@ -88,9 +88,10 @@ fun AnalyticsScreen() {
         Text("Rotación de inventario", style = MaterialTheme.typography.titleLarge)
         Text("Salidas del período / inventario promedio (mock).")
         BoxWithConstraints(Modifier.fillMaxWidth()) {
+            val scopeMaxWidth = this.maxWidth
             val values = listOf("Analgésicos" to listOf("1,8", "3,2", "12,4")[period],
                 "Antibióticos" to listOf("2,4", "4,1", "16,8")[period], "Jarabes" to listOf("0,9", "1,7", "7,2")[period])
-            if (maxWidth < 520.dp) {
+            if (scopeMaxWidth < 520.dp) {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) { values.forEach { RotationCard(it.first, it.second, Modifier.fillMaxWidth()) } }
             } else {
                 Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) { values.forEach { RotationCard(it.first, it.second, Modifier.weight(1f)) } }
