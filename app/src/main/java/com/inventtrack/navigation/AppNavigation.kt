@@ -1,6 +1,5 @@
 package com.inventtrack.navigation
 
-import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -14,17 +13,15 @@ import androidx.navigation.compose.*
 import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.screens.*
 import com.inventtrack.ui.session.SessionViewModel
+import com.inventtrack.ui.settings.SettingsRoute
 
 @Composable
 fun InventTrackApp(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    onDarkThemeChange: (Boolean) -> Unit = {},
     sessionViewModel: SessionViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val navController = rememberNavController()
     val currentUser by sessionViewModel.currentUser.collectAsStateWithLifecycle()
     val userName = currentUser?.nombre.orEmpty()
-    val userEmail = currentUser?.email.orEmpty()
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
     val isSplash = route == Routes.SPLASH
@@ -113,16 +110,11 @@ fun InventTrackApp(
             composable(Routes.MOVEMENT_FORM) { MovementScreen() }
             composable(Routes.ANALYTICS) { AnalyticsScreen() }
             composable(Routes.SETTINGS) {
-                SettingsScreen(
-                    userName = userName,
-                    userEmail = userEmail,
-                    onProfileSave = { name, email -> sessionViewModel.startSession(name, email) },
-                    darkTheme = darkTheme,
-                    onDarkThemeChange = onDarkThemeChange,
+                SettingsRoute(
                     onCategoriesClick = { go(Routes.CATEGORIES) },
                     onHistoryClick = { go(Routes.HISTORY) },
                     onAnalyticsClick = { go(Routes.ANALYTICS) },
-                    onLogoutClick = {
+                    onLoggedOut = {
                         navController.navigate(Routes.LOGIN) {
                             popUpTo(navController.graph.id) { inclusive = true }
                             launchSingleTop = true

@@ -1,8 +1,9 @@
-package com.inventtrack.ui.screens
+package com.inventtrack.ui.settings
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -11,7 +12,6 @@ import androidx.compose.material.icons.automirrored.filled.Logout
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -22,6 +22,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.di.AppViewModelProvider
+import com.inventtrack.ui.components.ObserveAsEvents
 import com.inventtrack.ui.components.ScreenContent
 import com.inventtrack.ui.theme.AvailableGreen
 import com.inventtrack.ui.theme.CriticalRed
@@ -30,29 +34,61 @@ import com.inventtrack.ui.theme.Shapes
 import com.inventtrack.ui.theme.SurfaceLight
 
 @Composable
-fun SettingsScreen(
-    userName: String,
-    userEmail: String,
-    onProfileSave: (name: String, email: String) -> Unit,
-    darkTheme: Boolean,
-    onDarkThemeChange: (Boolean) -> Unit,
+fun SettingsRoute(
     onCategoriesClick: () -> Unit,
     onHistoryClick: () -> Unit,
     onAnalyticsClick: () -> Unit,
-    onLogoutClick: () -> Unit
+    onLoggedOut: () -> Unit,
+    viewModel: SettingsViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
-    var notificationsEnabled by rememberSaveable { mutableStateOf(true) }
-    var localSaveEnabled by rememberSaveable { mutableStateOf(true) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    var showChangePasswordDialog by remember { mutableStateOf(false) }
-    var showEditProfileDialog by remember { mutableStateOf(false) }
-    var showLogoutDialog by remember { mutableStateOf(false) }
+    ObserveAsEvents(viewModel.events) { event ->
+        when (event) {
+            SettingsEvent.LoggedOut -> onLoggedOut()
+        }
+    }
 
+    SettingsScreen(
+        uiState = uiState,
+        darkTheme = uiState.darkTheme ?: isSystemInDarkTheme(),
+        onDarkThemeChange = viewModel::onDarkThemeChange,
+        onNotificationsChange = viewModel::onNotificationsChange,
+        onLocalSaveChange = viewModel::onLocalSaveChange,
+        onOpenDialog = viewModel::openDialog,
+        onDismissDialog = viewModel::dismissDialog,
+        onDialogInputChange = viewModel::onDialogInputChange,
+        onSaveProfile = viewModel::saveProfile,
+        onChangePassword = viewModel::changePassword,
+        onLogoutConfirm = viewModel::logout,
+        onCategoriesClick = onCategoriesClick,
+        onHistoryClick = onHistoryClick,
+        onAnalyticsClick = onAnalyticsClick
+    )
+}
+
+@Composable
+fun SettingsScreen(
+    uiState: SettingsUiState,
+    darkTheme: Boolean,
+    onDarkThemeChange: (Boolean) -> Unit,
+    onNotificationsChange: (Boolean) -> Unit,
+    onLocalSaveChange: (Boolean) -> Unit,
+    onOpenDialog: (SettingsDialog) -> Unit,
+    onDismissDialog: () -> Unit,
+    onDialogInputChange: () -> Unit,
+    onSaveProfile: (name: String, email: String) -> Unit,
+    onChangePassword: (current: String, new: String, confirm: String) -> Unit,
+    onLogoutConfirm: () -> Unit,
+    onCategoriesClick: () -> Unit,
+    onHistoryClick: () -> Unit,
+    onAnalyticsClick: () -> Unit
+) {
     ScreenContent("Configuracion") {
         ProfileCard(
-            userName = userName,
-            userEmail = userEmail,
-            onEditClick = { showEditProfileDialog = true }
+            userName = uiState.userName,
+            userEmail = uiState.userEmail,
+            onEditClick = { onOpenDialog(SettingsDialog.EDIT_PROFILE) }
         )
 
         Text("Preferencias", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
@@ -70,16 +106,16 @@ fun SettingsScreen(
                     icon = Icons.Default.Notifications,
                     title = "Notificaciones",
                     subtitle = "Recibe alertas de stock bajo y movimientos",
-                    checked = notificationsEnabled,
-                    onCheckedChange = { notificationsEnabled = it }
+                    checked = uiState.notificationsEnabled,
+                    onCheckedChange = onNotificationsChange
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 SettingsSwitchRow(
                     icon = Icons.Default.Save,
                     title = "Guardado local",
                     subtitle = "Manten tus datos guardados en este dispositivo",
-                    checked = localSaveEnabled,
-                    onCheckedChange = { localSaveEnabled = it }
+                    checked = uiState.localSaveEnabled,
+                    onCheckedChange = onLocalSaveChange
                 )
             }
         }
@@ -91,14 +127,14 @@ fun SettingsScreen(
                     icon = Icons.Default.Lock,
                     title = "Cambiar contrasena",
                     subtitle = "Actualiza tu contrasena de acceso",
-                    onClick = { showChangePasswordDialog = true }
+                    onClick = { onOpenDialog(SettingsDialog.CHANGE_PASSWORD) }
                 )
                 HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
                 SettingsActionRow(
                     icon = Icons.Default.Edit,
                     title = "Editar perfil",
                     subtitle = "Modifica tu nombre y correo electronico",
-                    onClick = { showEditProfileDialog = true }
+                    onClick = { onOpenDialog(SettingsDialog.EDIT_PROFILE) }
                 )
             }
         }
@@ -130,7 +166,7 @@ fun SettingsScreen(
         }
 
         OutlinedButton(
-            onClick = { showLogoutDialog = true },
+            onClick = { onOpenDialog(SettingsDialog.LOGOUT) },
             modifier = Modifier
                 .fillMaxWidth()
                 .height(50.dp),
@@ -148,22 +184,28 @@ fun SettingsScreen(
         }
     }
 
-    if (showChangePasswordDialog) {
-        ChangePasswordDialog(onDismiss = { showChangePasswordDialog = false })
-    }
-
-    if (showEditProfileDialog) {
-        EditProfileDialog(
-            initialName = userName,
-            initialEmail = userEmail,
-            onSave = onProfileSave,
-            onDismiss = { showEditProfileDialog = false }
+    when (uiState.dialog) {
+        SettingsDialog.CHANGE_PASSWORD -> ChangePasswordDialog(
+            passwordChanged = uiState.passwordChanged,
+            error = uiState.passwordError,
+            isSaving = uiState.isSaving,
+            onInputChange = onDialogInputChange,
+            onSubmit = onChangePassword,
+            onDismiss = onDismissDialog
         )
-    }
 
-    if (showLogoutDialog) {
-        AlertDialog(
-            onDismissRequest = { showLogoutDialog = false },
+        SettingsDialog.EDIT_PROFILE -> EditProfileDialog(
+            initialName = uiState.userName,
+            initialEmail = uiState.userEmail,
+            error = uiState.profileError,
+            isSaving = uiState.isSaving,
+            onInputChange = onDialogInputChange,
+            onSave = onSaveProfile,
+            onDismiss = onDismissDialog
+        )
+
+        SettingsDialog.LOGOUT -> AlertDialog(
+            onDismissRequest = onDismissDialog,
             icon = {
                 Icon(
                     imageVector = Icons.AutoMirrored.Filled.Logout,
@@ -175,21 +217,20 @@ fun SettingsScreen(
             text = { Text("Seguro que deseas cerrar sesion? Tendras que iniciar sesion nuevamente para acceder a tu inventario.") },
             confirmButton = {
                 Button(
-                    onClick = {
-                        showLogoutDialog = false
-                        onLogoutClick()
-                    },
+                    onClick = onLogoutConfirm,
                     colors = ButtonDefaults.buttonColors(containerColor = CriticalRed)
                 ) {
                     Text("Cerrar sesion")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showLogoutDialog = false }) {
+                TextButton(onClick = onDismissDialog) {
                     Text("Cancelar")
                 }
             }
         )
+
+        null -> Unit
     }
 }
 
@@ -359,15 +400,21 @@ private fun PasswordField(
 }
 
 @Composable
-private fun ChangePasswordDialog(onDismiss: () -> Unit) {
+private fun ChangePasswordDialog(
+    passwordChanged: Boolean,
+    error: String?,
+    isSaving: Boolean,
+    onInputChange: () -> Unit,
+    onSubmit: (current: String, new: String, confirm: String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    // Texto de los campos y visibilidad: estado de UI del diálogo, la validación vive en el ViewModel.
     var currentPassword by remember { mutableStateOf("") }
     var newPassword by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
     var currentVisible by remember { mutableStateOf(false) }
     var newVisible by remember { mutableStateOf(false) }
     var confirmVisible by remember { mutableStateOf(false) }
-    var passwordError by remember { mutableStateOf<String?>(null) }
-    var passwordChanged by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -388,7 +435,7 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit) {
                         value = currentPassword,
                         onValueChange = {
                             currentPassword = it
-                            passwordError = null
+                            onInputChange()
                         },
                         label = "Contrasena actual",
                         visible = currentVisible,
@@ -398,7 +445,7 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit) {
                         value = newPassword,
                         onValueChange = {
                             newPassword = it
-                            passwordError = null
+                            onInputChange()
                         },
                         label = "Nueva contrasena",
                         visible = newVisible,
@@ -408,13 +455,13 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit) {
                         value = confirmPassword,
                         onValueChange = {
                             confirmPassword = it
-                            passwordError = null
+                            onInputChange()
                         },
                         label = "Confirmar contrasena",
                         visible = confirmVisible,
                         onToggleVisibility = { confirmVisible = !confirmVisible }
                     )
-                    passwordError?.let {
+                    error?.let {
                         Text(it, color = CriticalRed, style = MaterialTheme.typography.bodySmall)
                     }
                 }
@@ -430,20 +477,11 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit) {
                 }
             } else {
                 Button(
-                    onClick = {
-                        passwordError = when {
-                            currentPassword.isEmpty() -> "Ingresa tu contrasena actual."
-                            newPassword.length < 6 -> "La nueva contrasena debe tener al menos 6 caracteres."
-                            confirmPassword != newPassword -> "Las contrasenas no coinciden."
-                            else -> null
-                        }
-                        if (passwordError == null) {
-                            passwordChanged = true
-                        }
-                    },
+                    onClick = { onSubmit(currentPassword, newPassword, confirmPassword) },
+                    enabled = !isSaving,
                     colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
                 ) {
-                    Text("Actualizar")
+                    SavingButtonContent(isSaving = isSaving, label = "Actualizar")
                 }
             }
         },
@@ -461,12 +499,14 @@ private fun ChangePasswordDialog(onDismiss: () -> Unit) {
 private fun EditProfileDialog(
     initialName: String,
     initialEmail: String,
+    error: String?,
+    isSaving: Boolean,
+    onInputChange: () -> Unit,
     onSave: (String, String) -> Unit,
     onDismiss: () -> Unit
 ) {
     var nameField by remember { mutableStateOf(initialName) }
     var emailField by remember { mutableStateOf(initialEmail) }
-    var profileError by remember { mutableStateOf<String?>(null) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -477,7 +517,7 @@ private fun EditProfileDialog(
                     value = nameField,
                     onValueChange = {
                         nameField = it
-                        profileError = null
+                        onInputChange()
                     },
                     label = { Text("Nombre completo") },
                     singleLine = true,
@@ -492,7 +532,7 @@ private fun EditProfileDialog(
                     value = emailField,
                     onValueChange = {
                         emailField = it
-                        profileError = null
+                        onInputChange()
                     },
                     label = { Text("Correo electronico") },
                     singleLine = true,
@@ -504,27 +544,18 @@ private fun EditProfileDialog(
                     ),
                     modifier = Modifier.fillMaxWidth()
                 )
-                profileError?.let {
+                error?.let {
                     Text(it, color = CriticalRed, style = MaterialTheme.typography.bodySmall)
                 }
             }
         },
         confirmButton = {
             Button(
-                onClick = {
-                    profileError = when {
-                        nameField.isBlank() -> "El nombre no puede estar vacio."
-                        !emailField.contains("@") || !emailField.contains(".") -> "Ingresa un correo electronico valido."
-                        else -> null
-                    }
-                    if (profileError == null) {
-                        onSave(nameField.trim(), emailField.trim())
-                        onDismiss()
-                    }
-                },
+                onClick = { onSave(nameField, emailField) },
+                enabled = !isSaving,
                 colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
             ) {
-                Text("Guardar")
+                SavingButtonContent(isSaving = isSaving, label = "Guardar")
             }
         },
         dismissButton = {
@@ -533,4 +564,17 @@ private fun EditProfileDialog(
             }
         }
     )
+}
+
+@Composable
+private fun SavingButtonContent(isSaving: Boolean, label: String) {
+    if (isSaving) {
+        CircularProgressIndicator(
+            modifier = Modifier.size(18.dp),
+            strokeWidth = 2.dp,
+            color = MaterialTheme.colorScheme.onPrimary
+        )
+    } else {
+        Text(label)
+    }
 }

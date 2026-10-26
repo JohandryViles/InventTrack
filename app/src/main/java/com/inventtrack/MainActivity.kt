@@ -23,10 +23,7 @@ class MainActivity : ComponentActivity() {
             val darkThemePreference by viewModel.darkTheme.collectAsStateWithLifecycle()
             val darkTheme = darkThemePreference ?: isSystemInDarkTheme()
             InventTrackTheme(darkTheme = darkTheme) {
-                InventTrackApp(
-                    darkTheme = darkTheme,
-                    onDarkThemeChange = viewModel::setDarkTheme
-                )
+                InventTrackApp()
             }
         }
     }

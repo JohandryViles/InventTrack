@@ -1,6 +1,6 @@
 # InventTrack
 
-Base Android de la etapa 2, en el repositorio original del equipo.
+App Android de inventario para farmacia (etapas 2 y 3), en el repositorio original del equipo.
 
 ## Ejecutar
 
@@ -8,19 +8,43 @@ Abrir este directorio en Android Studio, sincronizar Gradle y ejecutar `app` en 
 
 ```sh
 ./gradlew :app:assembleDebug :app:lintDebug
+./gradlew :app:testDebugUnitTest   # pruebas de repositorios y ViewModels
 ```
 
-## Organización y colaboración
+## Arquitectura (etapa 3: MVVM)
 
-- `ui/theme`: colores claros/oscuros, Shapes y Typography de Material 3.
-- `ui/components`: contenedor flexible, desplazable y con ancho máximo.
-- `ui/screens`: Movimiento, Análisis y puntos de integración del equipo.
-- `navigation/Routes.kt`: las doce rutas, definidas únicamente aquí.
-- `navigation/AppNavigation.kt`: NavHost, NavController y NavigationBar.
+```
+com.inventtrack
+├── InventTrackApplication.kt   crea el AppContainer
+├── di/                         AppContainer (repositorios) y AppViewModelProvider (Factory)
+├── data/
+│   ├── model/                  Producto, Categoria, Movimiento, Usuario, ChatMessage
+│   ├── source/                 MockDataSource: único lugar con datos de ejemplo
+│   └── repository/             interfaces Product, Category, Movement, Auth, Preferences, Chat
+│       └── fake/               implementaciones en memoria (StateFlow + delay + Dispatchers.IO)
+├── ui/
+│   ├── settings/               referencia del patrón: SettingsRoute, SettingsScreen, SettingsViewModel
+│   ├── session/                SessionViewModel (usuario de la sesión para la navegación)
+│   ├── screens/                pantallas pendientes de migrar
+│   ├── components/  theme/
+└── navigation/                 Routes.kt y AppNavigation.kt
+```
 
-Las pantallas de otros integrantes usan `IntegrationScreen` de manera provisional. Sustituir su contenido en el destino correspondiente sin cambiar el nombre de la ruta. Login permite entrar explícitamente en modo demo; no implementa autenticación real.
+Flujo: `Screen (Compose) → ViewModel → Repository (interfaz) → Fake*Repository`. Cada fake guarda su estado en un `MutableStateFlow` privado (fuente única de verdad), simula latencia con `delay()` y ejecuta todo con `withContext`/`flowOn` en el dispatcher de IO que recibe del contenedor. Registrar un movimiento cambia el stock en `ProductRepository`, y todas las pantallas que lo observan se actualizan solas. No hay capa de dominio: no existe lógica de negocio compleja reutilizada entre varios ViewModels.
 
-No se usan ViewModels, repositorios ni capa de datos. Los datos mock viven dentro de los composables. El formulario conserva su estado durante recreaciones y navegación entre pestañas. Las estadísticas son ejemplos independientes y no se recalculan con los movimientos.
+### Cómo migrar una pantalla
+
+Tomar `ui/settings/` como ejemplo.
+
+1. Crear `ui/<funcionalidad>/` y mover allí la pantalla.
+2. `XViewModel(repos…)`: recibe sus repositorios **por constructor**, nunca `Repository()` adentro. Expone `val uiState: StateFlow<XUiState>` (`combine(...).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), …)`). Los eventos de una sola vez (navegar, cerrar diálogo) van en un `SharedFlow`.
+3. Registrarlo en `di/AppViewModelProvider.kt`: `initializer { XViewModel(inventTrackContainer().productRepository) }`.
+4. `XRoute(...)`: obtiene el ViewModel con `viewModel(factory = AppViewModelProvider.Factory)`, lee el estado con `collectAsStateWithLifecycle()`, escucha eventos con `ObserveAsEvents` y llama a `XScreen(uiState, onEvento…)`.
+5. `XScreen` y sus hijos **no reciben el ViewModel**: solo datos y lambdas. El estado puramente visual (menú abierto, contraseña visible, texto de un diálogo) puede quedarse en `remember`. Los datos de negocio, no.
+6. En `AppNavigation.kt`, cambiar solo el `composable(...)` de esa ruta para que llame a `XRoute`.
+7. Borrar los `val mock…` y las listas fijas de la pantalla, porque los datos salen de los repositorios.
+
+Login y Registro todavía abren la sesión a través de `SessionViewModel.startSession`. Cuando tengan su propio ViewModel, deben usar `AuthRepository.login`/`register`. La cuenta demo es `demo@inventtrack.com` / `demo123`; cualquier otro correo válido entra en modo demo.
 
 La interfaz se construye exclusivamente con Compose. Los únicos XML son el manifiesto que requiere Android y el drawable vectorial del launcher, que el sistema necesita antes de iniciar Compose.
 

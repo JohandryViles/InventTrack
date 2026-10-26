@@ -7,6 +7,7 @@ import androidx.lifecycle.viewmodel.viewModelFactory
 import com.inventtrack.InventTrackApplication
 import com.inventtrack.ui.MainViewModel
 import com.inventtrack.ui.session.SessionViewModel
+import com.inventtrack.ui.settings.SettingsViewModel
 
 /**
  * Fábrica única de ViewModels. Cada ViewModel recibe sus repositorios por constructor
@@ -19,6 +20,10 @@ object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer { MainViewModel(inventTrackContainer().preferencesRepository) }
         initializer { SessionViewModel(inventTrackContainer().authRepository) }
+        initializer {
+            val container = inventTrackContainer()
+            SettingsViewModel(container.authRepository, container.preferencesRepository)
+        }
     }
 }
 
