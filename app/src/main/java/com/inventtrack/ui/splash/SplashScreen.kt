@@ -1,4 +1,4 @@
-package com.inventtrack.ui.screens
+package com.inventtrack.ui.splash
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.LinearEasing
@@ -11,31 +11,48 @@ import androidx.compose.material.icons.filled.Inventory
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.theme.PrimaryDarkBlue
 import com.inventtrack.ui.theme.SecondaryTeal
 import com.inventtrack.ui.theme.SurfaceLight
 
-private const val SPLASH_DURATION_MS = 2500
+private const val PROGRESS_ANIMATION_MS = 600
 
 @Composable
-fun SplashScreen(onTimeout: () -> Unit) {
+fun SplashRoute(
+    onFinished: (SplashDestination) -> Unit,
+    viewModel: SplashViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val currentOnFinished by rememberUpdatedState(onFinished)
+    // La animación es estado de UI: suaviza los saltos de progreso que publica el ViewModel.
     val progress = remember { Animatable(0f) }
 
-    LaunchedEffect(Unit) {
+    LaunchedEffect(uiState.progress, uiState.destination) {
         progress.animateTo(
-            targetValue = 1f,
-            animationSpec = tween(durationMillis = SPLASH_DURATION_MS, easing = LinearEasing)
+            targetValue = uiState.progress,
+            animationSpec = tween(durationMillis = PROGRESS_ANIMATION_MS, easing = LinearEasing)
         )
-        onTimeout()
+        // Navega cuando la barra llegó al final, no antes.
+        uiState.destination?.let(currentOnFinished)
     }
 
+    SplashScreen(progress = { progress.value }, message = uiState.message)
+}
+
+@Composable
+fun SplashScreen(progress: () -> Float, message: String) {
     Box(
         modifier = Modifier
             .fillMaxSize()
@@ -81,7 +98,7 @@ fun SplashScreen(onTimeout: () -> Unit) {
             )
         }
 
-        // Barra de carga sincronizada con el salto automático a Login
+        // Barra de carga con el avance real de la carga inicial
         Column(
             modifier = Modifier
                 .align(Alignment.BottomCenter)
@@ -91,7 +108,7 @@ fun SplashScreen(onTimeout: () -> Unit) {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             LinearProgressIndicator(
-                progress = { progress.value },
+                progress = progress,
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(CircleShape),
@@ -102,7 +119,7 @@ fun SplashScreen(onTimeout: () -> Unit) {
             Spacer(modifier = Modifier.height(12.dp))
 
             Text(
-                text = "Cargando...",
+                text = message,
                 style = MaterialTheme.typography.bodySmall,
                 color = SurfaceLight.copy(alpha = 0.6f)
             )

@@ -8,6 +8,7 @@ import com.inventtrack.InventTrackApplication
 import com.inventtrack.ui.MainViewModel
 import com.inventtrack.ui.session.SessionViewModel
 import com.inventtrack.ui.settings.SettingsViewModel
+import com.inventtrack.ui.splash.SplashViewModel
 
 /**
  * Fábrica única de ViewModels. Cada ViewModel recibe sus repositorios por constructor
@@ -20,6 +21,10 @@ object AppViewModelProvider {
     val Factory = viewModelFactory {
         initializer { MainViewModel(inventTrackContainer().preferencesRepository) }
         initializer { SessionViewModel(inventTrackContainer().authRepository) }
+        initializer {
+            val container = inventTrackContainer()
+            SplashViewModel(container.authRepository, container.productRepository)
+        }
         initializer {
             val container = inventTrackContainer()
             SettingsViewModel(container.authRepository, container.preferencesRepository)

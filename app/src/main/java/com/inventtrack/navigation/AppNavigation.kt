@@ -14,6 +14,8 @@ import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.screens.*
 import com.inventtrack.ui.session.SessionViewModel
 import com.inventtrack.ui.settings.SettingsRoute
+import com.inventtrack.ui.splash.SplashDestination
+import com.inventtrack.ui.splash.SplashRoute
 
 @Composable
 fun InventTrackApp(
@@ -56,9 +58,10 @@ fun InventTrackApp(
             modifier = if (isSplash) Modifier else Modifier.padding(padding)
         ) {
             composable(Routes.SPLASH) {
-                SplashScreen(
-                    onTimeout = {
-                        navController.navigate(Routes.LOGIN) { popUpTo(Routes.SPLASH) { inclusive = true } }
+                SplashRoute(
+                    onFinished = { destination ->
+                        val next = if (destination == SplashDestination.HOME) Routes.HOME else Routes.LOGIN
+                        navController.navigate(next) { popUpTo(Routes.SPLASH) { inclusive = true } }
                     }
                 )
             }

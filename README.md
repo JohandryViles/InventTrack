@@ -24,6 +24,7 @@ com.inventtrack
 │       └── fake/               implementaciones en memoria (StateFlow + delay + Dispatchers.IO)
 ├── ui/
 │   ├── settings/               referencia del patrón: SettingsRoute, SettingsScreen, SettingsViewModel
+│   ├── splash/                 SplashViewModel: carga inicial y decide Login o Inicio según la sesión
 │   ├── session/                SessionViewModel (usuario de la sesión para la navegación)
 │   ├── screens/                pantallas pendientes de migrar
 │   ├── components/  theme/
