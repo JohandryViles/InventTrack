@@ -7,19 +7,24 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
+import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.screens.*
+import com.inventtrack.ui.session.SessionViewModel
 
 @Composable
 fun InventTrackApp(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    onDarkThemeChange: (Boolean) -> Unit = {}
+    onDarkThemeChange: (Boolean) -> Unit = {},
+    sessionViewModel: SessionViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val navController = rememberNavController()
-    var userName by rememberSaveable { mutableStateOf("Usuario Demo") }
-    var userEmail by rememberSaveable { mutableStateOf("demo@inventtrack.com") }
+    val currentUser by sessionViewModel.currentUser.collectAsStateWithLifecycle()
+    val userName = currentUser?.nombre.orEmpty()
+    val userEmail = currentUser?.email.orEmpty()
     val entry by navController.currentBackStackEntryAsState()
     val route = entry?.destination?.route
     val isSplash = route == Routes.SPLASH
@@ -63,8 +68,7 @@ fun InventTrackApp(
             composable(Routes.LOGIN) {
                 LoginScreen(
                     onLoginClick = { name, email ->
-                        userName = name
-                        userEmail = email
+                        sessionViewModel.startSession(name, email)
                         navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
                     },
                     onRegisterClick = { go(Routes.REGISTER) }
@@ -74,8 +78,7 @@ fun InventTrackApp(
                 RegisterScreen(
                     onBackClick = { navController.popBackStack() },
                     onRegisterClick = { name, email ->
-                        userName = name
-                        userEmail = email
+                        sessionViewModel.startSession(name, email)
                         navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
                     }
                 )
@@ -113,10 +116,7 @@ fun InventTrackApp(
                 SettingsScreen(
                     userName = userName,
                     userEmail = userEmail,
-                    onProfileSave = { name, email ->
-                        userName = name
-                        userEmail = email
-                    },
+                    onProfileSave = { name, email -> sessionViewModel.startSession(name, email) },
                     darkTheme = darkTheme,
                     onDarkThemeChange = onDarkThemeChange,
                     onCategoriesClick = { go(Routes.CATEGORIES) },
