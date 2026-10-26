@@ -12,6 +12,8 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.screens.*
+import com.inventtrack.ui.analytics.AnalyticsRoute
+import com.inventtrack.ui.movements.MovementRoute
 import com.inventtrack.ui.session.SessionViewModel
 import com.inventtrack.ui.settings.SettingsRoute
 import com.inventtrack.ui.splash.SplashDestination
@@ -92,7 +94,7 @@ fun InventTrackApp(
                 )
             }
             composable(Routes.PRODUCTS) {
-                ProductListScreen(
+                ProductStockRoute(
                     onNavigateToAdd = { go(Routes.PRODUCT_FORM) },
                     onNavigateToEdit = { _ -> go(Routes.PRODUCT_FORM) }
                 )
@@ -110,8 +112,8 @@ fun InventTrackApp(
                 )
             }
             composable(Routes.CHATBOT) { InvenBotScreen() }
-            composable(Routes.MOVEMENT_FORM) { MovementScreen() }
-            composable(Routes.ANALYTICS) { AnalyticsScreen() }
+            composable(Routes.MOVEMENT_FORM) { MovementRoute() }
+            composable(Routes.ANALYTICS) { AnalyticsRoute() }
             composable(Routes.SETTINGS) {
                 SettingsRoute(
                     onCategoriesClick = { go(Routes.CATEGORIES) },

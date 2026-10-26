@@ -14,27 +14,43 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import com.inventtrack.data.model.Producto
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.di.AppViewModelProvider
+import com.inventtrack.ui.components.ObserveAsEvents
+import com.inventtrack.ui.products.ProductStockViewModel
+import kotlinx.coroutines.launch
 
-// Datos de ejemplo solicitados
-val mockProductos = listOf(
-    Producto(1, "Azitromicina 500 mg", "Antibióticos", "Caja con 3 tabletas", 150.0, 10, 5),
-    Producto(2, "Suero fisiológico", "Insumos", "Botella 500ml", 45.0, 3, 10),
-    Producto(3, "Jarabe pediátrico", "Jarabes", "Frasco 120ml", 80.0, 20, 5),
-    Producto(4, "Paracetamol 500 mg", "Analgésicos", "Caja con 20 tabletas", 25.0, 50, 10)
-)
+@Composable
+fun ProductStockRoute(
+    onNavigateToAdd: () -> Unit,
+    onNavigateToEdit: (Producto) -> Unit,
+    viewModel: ProductStockViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val snackbar = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    ObserveAsEvents(viewModel.events) { message -> scope.launch { snackbar.showSnackbar(message) } }
+    ProductListScreen(onNavigateToAdd, onNavigateToEdit, uiState.products, viewModel::delete,
+        uiState.isLoading, uiState.error, snackbar)
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
     onNavigateToAdd: () -> Unit,
-    onNavigateToEdit: (Producto) -> Unit
+    onNavigateToEdit: (Producto) -> Unit,
+    listaProductos: List<Producto>,
+    onDelete: (Int) -> Unit,
+    isLoading: Boolean,
+    error: String?,
+    snackbar: SnackbarHostState
 ) {
     var busqueda by remember { mutableStateOf("") }
     var categoriaSeleccionada by remember { mutableStateOf("Todos") }
     var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
-    var listaProductos by remember { mutableStateOf(mockProductos) }
 
-    val categorias = listOf("Todos", "Antibióticos", "Insumos", "Jarabes", "Analgésicos")
+    val categorias = listOf("Todos") + listaProductos.map { it.categoria }.distinct().sorted()
 
     val productosFiltrados = listaProductos.filter {
         (categoriaSeleccionada == "Todos" || it.categoria == categoriaSeleccionada) &&
@@ -42,6 +58,7 @@ fun ProductListScreen(
     }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNavigateToAdd) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar producto")
@@ -54,6 +71,8 @@ fun ProductListScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
+            if (isLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
+            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             // Buscador
             OutlinedTextField(
                 value = busqueda,
@@ -98,7 +117,7 @@ fun ProductListScreen(
             text = { Text("¿Estás seguro de que deseas eliminar ${producto.nombre}?") },
             confirmButton = {
                 TextButton(onClick = {
-                    listaProductos = listaProductos.filter { it.id != producto.id }
+                    onDelete(producto.id)
                     productoAEliminar = null
                 }) {
                     Text("Eliminar")
@@ -130,6 +149,7 @@ fun ProductCard(producto: Producto, onEdit: () -> Unit, onDelete: () -> Unit) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = producto.nombre, style = MaterialTheme.typography.titleMedium)
                 Text(text = producto.categoria, style = MaterialTheme.typography.bodyMedium)
+                Text(text = "Existencias: ${producto.stockActual} unidades", style = MaterialTheme.typography.bodyMedium)
                 Spacer(modifier = Modifier.height(4.dp))
                 StatusChip(stockActual = producto.stockActual, stockMinimo = producto.stockMinimo)
             }
