@@ -10,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.*
+import androidx.navigation.NavGraph.Companion.findStartDestination
 import com.inventtrack.ui.screens.*
 
 @Composable
@@ -40,7 +41,9 @@ fun InventTrackApp(
                     (destination == Routes.SETTINGS && route in listOf(Routes.CATEGORIES, Routes.HISTORY, Routes.ANALYTICS))
                 NavigationBarItem(selected = selected, onClick = {
                     navController.navigate(destination) {
-                        popUpTo(Routes.HOME) { saveState = true }
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
                         launchSingleTop = true
                         restoreState = true
                     }
