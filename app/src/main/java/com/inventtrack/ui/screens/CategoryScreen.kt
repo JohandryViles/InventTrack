@@ -12,13 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-
-// Modelo de datos temporal (Mock)
-data class Categoria(
-    val id: Int,
-    val nombre: String,
-    val cantidadProductos: Int
-)
+import com.inventtrack.data.model.Categoria
 
 // Datos de ejemplo para categorías
 val mockCategorias = listOf(

@@ -16,12 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
+import com.inventtrack.data.model.ChatMessage
 import com.inventtrack.ui.components.InventTrackTopBar
 import com.inventtrack.ui.theme.ChatBubbleBot
 import com.inventtrack.ui.theme.ChatBubbleUser
 import com.inventtrack.ui.theme.SecondaryTeal
-
-data class ChatMessage(val text: String, val isUser: Boolean)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
