@@ -1,35 +1,68 @@
 package com.inventtrack.ui.screens
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.ui.AppViewModelProvider
+import com.inventtrack.ui.products.ProductFormUiState
+import com.inventtrack.ui.products.ProductFormViewModel
+
+@Composable
+fun ProductFormRoute(
+    onNavigateBack: () -> Unit,
+    viewModel: ProductFormViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    LaunchedEffect(Unit) {
+        viewModel.navigateBack.collect {
+            onNavigateBack()
+        }
+    }
+
+    ProductFormScreen(
+        uiState = uiState,
+        onNombreChange = viewModel::onNombreChange,
+        onCategoriaChange = viewModel::onCategoriaChange,
+        onDescripcionChange = viewModel::onDescripcionChange,
+        onPrecioChange = viewModel::onPrecioChange,
+        onStockActualChange = viewModel::onStockActualChange,
+        onStockMinimoChange = viewModel::onStockMinimoChange,
+        onSaveProduct = viewModel::saveProduct,
+        onNavigateBack = onNavigateBack
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductFormScreen(
-    productoAEditar: Producto? = null,
-    onNavigateBack: () -> Unit,
-    onSave: (Producto) -> Unit
+    uiState: ProductFormUiState,
+    onNombreChange: (String) -> Unit,
+    onCategoriaChange: (String) -> Unit,
+    onDescripcionChange: (String) -> Unit,
+    onPrecioChange: (String) -> Unit,
+    onStockActualChange: (String) -> Unit,
+    onStockMinimoChange: (String) -> Unit,
+    onSaveProduct: () -> Unit,
+    onNavigateBack: () -> Unit
 ) {
-    // Estados locales para el formulario
-    var nombre by remember { mutableStateOf(productoAEditar?.nombre ?: "") }
-    var categoria by remember { mutableStateOf(productoAEditar?.categoria ?: "") }
-    var descripcion by remember { mutableStateOf(productoAEditar?.descripcion ?: "") }
-    var precio by remember { mutableStateOf(productoAEditar?.precio?.toString() ?: "") }
-    var stockActual by remember { mutableStateOf(productoAEditar?.stockActual?.toString() ?: "") }
-    var stockMinimo by remember { mutableStateOf(productoAEditar?.stockMinimo?.toString() ?: "") }
-
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(if (productoAEditar == null) "Crear Producto" else "Editar Producto") },
+                title = { Text(if (uiState.nombre.isNotBlank() && !uiState.nameError.isNullOrBlank()) "Editar Producto" else "Nuevo Producto") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
-                        Icon(Icons.Default.ArrowBack, contentDescription = "Regresar")
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Volver")
                     }
                 }
             )
@@ -39,85 +72,78 @@ fun ProductFormScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+                .padding(16.dp)
+                .verticalScroll(rememberScrollState()),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             OutlinedTextField(
-                value = nombre,
-                onValueChange = { nombre = it },
-                label = { Text("Nombre") },
+                value = uiState.nombre,
+                onValueChange = onNombreChange,
+                label = { Text("Nombre del producto") },
+                isError = uiState.nameError != null,
+                supportingText = { uiState.nameError?.let { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
-                value = categoria,
-                onValueChange = { categoria = it },
+                value = uiState.categoria,
+                onValueChange = onCategoriaChange,
                 label = { Text("Categoría") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             OutlinedTextField(
-                value = descripcion,
-                onValueChange = { descripcion = it },
+                value = uiState.descripcion,
+                onValueChange = onDescripcionChange,
                 label = { Text("Descripción") },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                minLines = 3
             )
 
             OutlinedTextField(
-                value = precio,
-                onValueChange = { precio = it },
-                label = { Text("Precio") },
+                value = uiState.precio,
+                onValueChange = onPrecioChange,
+                label = { Text("Precio unitario") },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                isError = uiState.priceError != null,
+                supportingText = { uiState.priceError?.let { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
             )
 
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
-                    value = stockActual,
-                    onValueChange = { stockActual = it },
-                    label = { Text("Stock Actual") },
+                    value = uiState.stockActual,
+                    onValueChange = onStockActualChange,
+                    label = { Text("Stock actual") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    isError = uiState.stockError != null,
+                    supportingText = { uiState.stockError?.let { Text(it) } },
                     modifier = Modifier.weight(1f)
                 )
-                
+
                 OutlinedTextField(
-                    value = stockMinimo,
-                    onValueChange = { stockMinimo = it },
-                    label = { Text("Stock Mínimo") },
+                    value = uiState.stockMinimo,
+                    onValueChange = onStockMinimoChange,
+                    label = { Text("Stock mínimo") },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                     modifier = Modifier.weight(1f)
                 )
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            Row(
+            Button(
+                onClick = onSaveProduct,
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                enabled = !uiState.isSaving
             ) {
-                OutlinedButton(
-                    onClick = onNavigateBack,
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Cancelar")
-                }
-                
-                Button(
-                    onClick = {
-                        val nuevoProducto = Producto(
-                            id = productoAEditar?.id ?: (1000..9999).random(),
-                            nombre = nombre,
-                            categoria = categoria,
-                            descripcion = descripcion,
-                            precio = precio.toDoubleOrNull() ?: 0.0,
-                            stockActual = stockActual.toIntOrNull() ?: 0,
-                            stockMinimo = stockMinimo.toIntOrNull() ?: 0
-                        )
-                        onSave(nuevoProducto)
-                    },
-                    modifier = Modifier.weight(1f)
-                ) {
-                    Text("Guardar")
+                if (uiState.isSaving) {
+                    CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                } else {
+                    Text("Guardar Producto")
                 }
             }
         }

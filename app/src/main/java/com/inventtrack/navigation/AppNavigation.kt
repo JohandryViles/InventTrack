@@ -36,7 +36,7 @@ fun InventTrackApp(
         if (authenticated) NavigationBar {
             tabs.forEach { (destination, label, icon) ->
                 val selected = route == destination ||
-                    (destination == Routes.PRODUCTS && route == Routes.PRODUCT_FORM) ||
+                    (destination == Routes.PRODUCTS && route?.startsWith("product_form") == true) ||
                     (destination == Routes.SETTINGS && route in listOf(Routes.CATEGORIES, Routes.HISTORY, Routes.ANALYTICS))
                 NavigationBarItem(selected = selected, onClick = {
                     navController.navigate(destination) {
@@ -89,18 +89,20 @@ fun InventTrackApp(
                 )
             }
             composable(Routes.PRODUCTS) {
-                ProductListScreen(
-                    onNavigateToAdd = { go(Routes.PRODUCT_FORM) },
-                    onNavigateToEdit = { _ -> go(Routes.PRODUCT_FORM) }
+                ProductListRoute(
+                    onNavigateToAdd = { go("product_form") },
+                    onNavigateToEdit = { id -> go("product_form?id=$id") }
                 )
             }
-            composable(Routes.PRODUCT_FORM) { 
-                ProductFormScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onSave = { _ -> navController.popBackStack() }
+            composable(
+                route = Routes.PRODUCT_FORM,
+                arguments = listOf(androidx.navigation.navArgument("id") { type = androidx.navigation.NavType.StringType; nullable = true })
+            ) { 
+                ProductFormRoute(
+                    onNavigateBack = { navController.popBackStack() }
                 ) 
             }
-            composable(Routes.CATEGORIES) { CategoryScreen() }
+            composable(Routes.CATEGORIES) { CategoryRoute() }
             composable(Routes.HISTORY) {
                 MovementHistoryScreen(
                     onBackClick = { navController.popBackStack() }

@@ -13,44 +13,45 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.data.Producto
+import com.inventtrack.ui.AppViewModelProvider
+import com.inventtrack.ui.products.ProductListUiState
+import com.inventtrack.ui.products.ProductListViewModel
 
-// Modelo de datos temporal (Mock)
-data class Producto(
-    val id: Int,
-    val nombre: String,
-    val categoria: String,
-    val descripcion: String,
-    val precio: Double,
-    val stockActual: Int,
-    val stockMinimo: Int
-)
+@Composable
+fun ProductListRoute(
+    onNavigateToAdd: () -> Unit,
+    onNavigateToEdit: (Int) -> Unit,
+    viewModel: ProductListViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-// Datos de ejemplo solicitados
-val mockProductos = listOf(
-    Producto(1, "Azitromicina 500 mg", "Antibióticos", "Caja con 3 tabletas", 150.0, 10, 5),
-    Producto(2, "Suero fisiológico", "Insumos", "Botella 500ml", 45.0, 3, 10),
-    Producto(3, "Jarabe pediátrico", "Jarabes", "Frasco 120ml", 80.0, 20, 5),
-    Producto(4, "Paracetamol 500 mg", "Analgésicos", "Caja con 20 tabletas", 25.0, 50, 10)
-)
+    ProductListScreen(
+        uiState = uiState,
+        onQueryChange = viewModel::onQueryChange,
+        onCategoryChange = viewModel::onCategoryChange,
+        onNavigateToAdd = onNavigateToAdd,
+        onNavigateToEdit = onNavigateToEdit,
+        onDeleteRequest = viewModel::onDeleteRequest,
+        onConfirmDelete = viewModel::confirmDelete,
+        onDismissDelete = { viewModel.onDeleteRequest(null) }
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
+    uiState: ProductListUiState,
+    onQueryChange: (String) -> Unit,
+    onCategoryChange: (String) -> Unit,
     onNavigateToAdd: () -> Unit,
-    onNavigateToEdit: (Producto) -> Unit
+    onNavigateToEdit: (Int) -> Unit,
+    onDeleteRequest: (Producto) -> Unit,
+    onConfirmDelete: () -> Unit,
+    onDismissDelete: () -> Unit
 ) {
-    var busqueda by remember { mutableStateOf("") }
-    var categoriaSeleccionada by remember { mutableStateOf("Todos") }
-    var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
-    var listaProductos by remember { mutableStateOf(mockProductos) }
-
-    val categorias = listOf("Todos", "Antibióticos", "Insumos", "Jarabes", "Analgésicos")
-
-    val productosFiltrados = listaProductos.filter {
-        (categoriaSeleccionada == "Todos" || it.categoria == categoriaSeleccionada) &&
-        it.nombre.contains(busqueda, ignoreCase = true)
-    }
-
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = onNavigateToAdd) {
@@ -64,22 +65,20 @@ fun ProductListScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // Buscador
             OutlinedTextField(
-                value = busqueda,
-                onValueChange = { busqueda = it },
+                value = uiState.query,
+                onValueChange = onQueryChange,
                 label = { Text("Buscar producto") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Chips de filtro por categoría
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(categorias) { categoria ->
+                items(uiState.categorias) { categoria ->
                     FilterChip(
-                        selected = categoriaSeleccionada == categoria,
-                        onClick = { categoriaSeleccionada = categoria },
+                        selected = uiState.categoriaSeleccionada == categoria,
+                        onClick = { onCategoryChange(categoria) },
                         label = { Text(categoria) }
                     )
                 }
@@ -87,45 +86,42 @@ fun ProductListScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Lista de productos
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(productosFiltrados) { producto ->
-                    ProductCard(
-                        producto = producto,
-                        onEdit = { onNavigateToEdit(producto) },
-                        onDelete = { productoAEliminar = producto }
-                    )
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(uiState.productos) { producto ->
+                        ProductCard(
+                            producto = producto,
+                            onEdit = { onNavigateToEdit(producto.id) },
+                            onDelete = { onDeleteRequest(producto) }
+                        )
+                    }
                 }
             }
         }
     }
 
-    // Diálogo de confirmación para eliminar
-    productoAEliminar?.let { producto ->
+    uiState.productoAEliminar?.let { producto ->
         AlertDialog(
-            onDismissRequest = { productoAEliminar = null },
+            onDismissRequest = onDismissDelete,
             title = { Text("Eliminar producto") },
             text = { Text("¿Estás seguro de que deseas eliminar ${producto.nombre}?") },
             confirmButton = {
-                TextButton(onClick = {
-                    listaProductos = listaProductos.filter { it.id != producto.id }
-                    productoAEliminar = null
-                }) {
+                TextButton(onClick = onConfirmDelete) {
                     Text("Eliminar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { productoAEliminar = null }) {
+                TextButton(onClick = onDismissDelete) {
                     Text("Cancelar")
                 }
             }
         )
     }
 }
-
-// -------------------------------------------------------------------------
-// NOTA: Reemplazar los componentes debajo por los que haga Deny
-// -------------------------------------------------------------------------
 
 @Composable
 fun ProductCard(producto: Producto, onEdit: () -> Unit, onDelete: () -> Unit) {

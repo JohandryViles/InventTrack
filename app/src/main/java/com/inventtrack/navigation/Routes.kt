@@ -6,7 +6,7 @@ object Routes {
     const val REGISTER = "register"
     const val HOME = "home"
     const val PRODUCTS = "products"
-    const val PRODUCT_FORM = "product_form"
+    const val PRODUCT_FORM = "product_form?id={id}"
     const val CATEGORIES = "categories"
     const val MOVEMENT_FORM = "movement_form"
     const val HISTORY = "history"

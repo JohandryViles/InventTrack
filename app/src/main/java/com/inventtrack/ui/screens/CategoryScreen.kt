@@ -12,34 +12,53 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.data.Categoria
+import com.inventtrack.ui.AppViewModelProvider
+import com.inventtrack.ui.categories.CategoryUiState
+import com.inventtrack.ui.categories.CategoryViewModel
 
-// Modelo de datos temporal (Mock)
-data class Categoria(
-    val id: Int,
-    val nombre: String,
-    val cantidadProductos: Int
-)
+@Composable
+fun CategoryRoute(
+    viewModel: CategoryViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-// Datos de ejemplo para categorías
-val mockCategorias = listOf(
-    Categoria(1, "Antibióticos", 15),
-    Categoria(2, "Insumos", 40),
-    Categoria(3, "Jarabes", 10),
-    Categoria(4, "Analgésicos", 25)
-)
+    CategoryScreen(
+        uiState = uiState,
+        onFormNombreChange = viewModel::onFormNombreChange,
+        onFormDescripcionChange = viewModel::onFormDescripcionChange,
+        onOpenAddForm = viewModel::openAddForm,
+        onOpenEditForm = viewModel::openEditForm,
+        onDismissForm = viewModel::dismissForm,
+        onSaveForm = viewModel::saveCategory,
+        onRequestDelete = viewModel::requestDelete,
+        onDismissDelete = viewModel::dismissDelete,
+        onConfirmDelete = viewModel::confirmDelete
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CategoryScreen() {
-    var listaCategorias by remember { mutableStateOf(mockCategorias) }
-    var categoriaAEliminar by remember { mutableStateOf<Categoria?>(null) }
-
+fun CategoryScreen(
+    uiState: CategoryUiState,
+    onFormNombreChange: (String) -> Unit,
+    onFormDescripcionChange: (String) -> Unit,
+    onOpenAddForm: () -> Unit,
+    onOpenEditForm: (Categoria) -> Unit,
+    onDismissForm: () -> Unit,
+    onSaveForm: () -> Unit,
+    onRequestDelete: (Categoria) -> Unit,
+    onDismissDelete: () -> Unit,
+    onConfirmDelete: () -> Unit
+) {
     Scaffold(
         topBar = {
             TopAppBar(title = { Text("Categorías") })
         },
         floatingActionButton = {
-            FloatingActionButton(onClick = { /* Acción para agregar categoría (No especificada en el prompt, solo visual) */ }) {
+            FloatingActionButton(onClick = onOpenAddForm) {
                 Icon(Icons.Default.Add, contentDescription = "Nueva categoría")
             }
         }
@@ -51,32 +70,61 @@ fun CategoryScreen() {
                 .padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            items(listaCategorias) { categoria ->
+            items(uiState.categorias) { categoria ->
                 CategoryCard(
                     categoria = categoria,
-                    onEdit = { /* Acción para editar categoría */ },
-                    onDelete = { categoriaAEliminar = categoria }
+                    onEdit = { onOpenEditForm(categoria) },
+                    onDelete = { onRequestDelete(categoria) }
                 )
             }
         }
     }
 
-    // Diálogo de confirmación para eliminar categoría
-    categoriaAEliminar?.let { categoria ->
+    if (uiState.categoriaEditando != null || uiState.formNombre.isNotEmpty() || uiState.formDescripcion.isNotEmpty()) {
+        val isEditing = uiState.categoriaEditando != null
         AlertDialog(
-            onDismissRequest = { categoriaAEliminar = null },
-            title = { Text("Eliminar categoría") },
-            text = { Text("¿Estás seguro de que deseas eliminar la categoría '${categoria.nombre}'?") },
+            onDismissRequest = onDismissForm,
+            title = { Text(if (isEditing) "Editar Categoría" else "Nueva Categoría") },
+            text = {
+                Column {
+                    OutlinedTextField(
+                        value = uiState.formNombre,
+                        onValueChange = onFormNombreChange,
+                        label = { Text("Nombre") }
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    OutlinedTextField(
+                        value = uiState.formDescripcion,
+                        onValueChange = onFormDescripcionChange,
+                        label = { Text("Descripción") }
+                    )
+                }
+            },
             confirmButton = {
-                TextButton(onClick = {
-                    listaCategorias = listaCategorias.filter { it.id != categoria.id }
-                    categoriaAEliminar = null
-                }) {
-                    Text("Eliminar")
+                TextButton(onClick = onSaveForm, enabled = !uiState.isSaving && uiState.formNombre.isNotBlank()) {
+                    Text(if (uiState.isSaving) "Guardando..." else "Guardar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { categoriaAEliminar = null }) {
+                TextButton(onClick = onDismissForm, enabled = !uiState.isSaving) {
+                    Text("Cancelar")
+                }
+            }
+        )
+    }
+
+    uiState.categoriaAEliminar?.let { categoria ->
+        AlertDialog(
+            onDismissRequest = onDismissDelete,
+            title = { Text("Eliminar categoría") },
+            text = { Text("¿Estás seguro de que deseas eliminar la categoría '${categoria.nombre}'?") },
+            confirmButton = {
+                TextButton(onClick = onConfirmDelete, enabled = !uiState.isSaving) {
+                    Text(if (uiState.isSaving) "Eliminando..." else "Eliminar")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = onDismissDelete, enabled = !uiState.isSaving) {
                     Text("Cancelar")
                 }
             }
@@ -96,8 +144,10 @@ fun CategoryCard(categoria: Categoria, onEdit: () -> Unit, onDelete: () -> Unit)
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 Text(text = categoria.nombre, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "${categoria.cantidadProductos} productos", style = MaterialTheme.typography.bodyMedium)
+                if (categoria.descripcion.isNotBlank()) {
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(text = categoria.descripcion, style = MaterialTheme.typography.bodyMedium)
+                }
             }
             Row {
                 IconButton(onClick = onEdit) { 
