@@ -6,6 +6,9 @@ import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
 import com.inventtrack.InventTrackApplication
 import com.inventtrack.ui.MainViewModel
+import com.inventtrack.ui.auth.LoginViewModel
+import com.inventtrack.ui.auth.RegisterViewModel
+import com.inventtrack.ui.history.MovementHistoryViewModel
 import com.inventtrack.ui.session.SessionViewModel
 import com.inventtrack.ui.settings.SettingsViewModel
 import com.inventtrack.ui.splash.SplashViewModel
@@ -28,6 +31,18 @@ object AppViewModelProvider {
         initializer {
             val container = inventTrackContainer()
             SettingsViewModel(container.authRepository, container.preferencesRepository)
+        }
+        initializer {
+            val container = inventTrackContainer()
+            LoginViewModel(container.authRepository)
+        }
+        initializer {
+            val container = inventTrackContainer()
+            RegisterViewModel(container.authRepository)
+        }
+        initializer {
+            val container = inventTrackContainer()
+            MovementHistoryViewModel(container.movementRepository)
         }
     }
 }

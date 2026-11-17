@@ -96,6 +96,8 @@ class FakeAuthRepository(
         _currentUser.value = null
     }
 
+    override fun displayNameFromEmail(email: String): String = nombreDesdeEmail(email)
+
     private fun nombreDesdeEmail(email: String): String =
         email.substringBefore("@")
             .split('.', '_', '-')

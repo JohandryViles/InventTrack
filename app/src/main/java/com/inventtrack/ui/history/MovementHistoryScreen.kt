@@ -1,4 +1,4 @@
-package com.inventtrack.ui.screens
+package com.inventtrack.ui.history
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,85 +18,67 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.data.model.Movimiento
+import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.theme.AvailableGreen
 import com.inventtrack.ui.theme.CriticalRed
 import com.inventtrack.ui.theme.PrimaryDarkBlue
 import com.inventtrack.ui.theme.SecondaryTeal
 import com.inventtrack.ui.theme.Shapes
+import java.time.format.DateTimeFormatter
+import java.util.Locale
 
-data class HistoryMovement(
-    val id: Int,
-    val dateGroup: String, // "Hoy — 21 Sep 2026", "Ayer — 20 Sep 2026"
-    val dayKey: String,    // "Hoy", "Ayer"
-    val type: String,      // "ENTRADA", "SALIDA"
-    val product: String,
-    val userTime: String,
-    val quantity: String,
-    val isEntry: Boolean,
-    val note: String = "Operación estándar registrada en sistema."
-)
+@Composable
+fun MovementHistoryRoute(
+    onBackClick: () -> Unit,
+    viewModel: MovementHistoryViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    MovementHistoryScreen(
+        uiState = uiState,
+        onDateFilterChange = viewModel::onDateFilterChange,
+        onTypeFilterChange = viewModel::onTypeFilterChange,
+        onProductFilterChange = viewModel::onProductFilterChange,
+        onClearFilters = viewModel::clearFilters,
+        onSelectMovement = viewModel::selectMovement,
+        onDismissDetail = viewModel::dismissDetail,
+        onBackClick = onBackClick
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MovementHistoryScreen(
+    uiState: MovementHistoryUiState,
+    onDateFilterChange: (String) -> Unit,
+    onTypeFilterChange: (String) -> Unit,
+    onProductFilterChange: (String) -> Unit,
+    onClearFilters: () -> Unit,
+    onSelectMovement: (Movimiento) -> Unit,
+    onDismissDetail: () -> Unit,
     onBackClick: () -> Unit
 ) {
-    // Datos mock del historial
-    val allMovements = remember {
-        listOf(
-            HistoryMovement(1, "Hoy — 21 Sep 2026", "Hoy", "ENTRADA", "Azitromicina 500mg", "Carlos M. - 09:32", "+20", true, "Lote nuevo de proveedor."),
-            HistoryMovement(2, "Hoy — 21 Sep 2026", "Hoy", "SALIDA", "Suero fisiológico", "Ana R. - 10:15", "-5", false, "Despacho a sala de atención."),
-            HistoryMovement(3, "Hoy — 21 Sep 2026", "Hoy", "ENTRADA", "Jarabe pediátrico", "Carlos M. - 11:00", "+10", true, "Reposición de stock."),
-            HistoryMovement(4, "Hoy — 21 Sep 2026", "Hoy", "SALIDA", "Ibuprofeno 400mg", "Luis G. - 12:30", "-4", false, "Venta directa de mostrador."),
-            HistoryMovement(5, "Ayer — 20 Sep 2026", "Ayer", "ENTRADA", "Amoxicilina 250mg", "Ana R. - 15:20", "+30", true, "Ingreso de compra mensual."),
-            HistoryMovement(6, "Ayer — 20 Sep 2026", "Ayer", "SALIDA", "Ibuprofeno 400mg", "Luis G. - 16:45", "-12", false, "Entrega de pedido #1042."),
-            HistoryMovement(7, "Ayer — 20 Sep 2026", "Ayer", "SALIDA", "Paracetamol 500mg", "Carlos M. - 17:30", "-8", false, "Despacho regular a farmacia.")
-        )
-    }
-
-    // Estados para los filtros con remember y mutableStateOf
-    var selectedDate by remember { mutableStateOf("Todas") }       // "Todas", "Hoy", "Ayer"
-    var selectedType by remember { mutableStateOf("Todos") }       // "Todos", "ENTRADA", "SALIDA"
-    var selectedProduct by remember { mutableStateOf("Todos") }   // "Todos", nombre de producto
-
-    // Menús desplegables para filtros
+    // Los estados puramente visuales de menú desplegable sí pueden quedarse en remember
     var dateMenuExpanded by remember { mutableStateOf(false) }
     var typeMenuExpanded by remember { mutableStateOf(false) }
     var productMenuExpanded by remember { mutableStateOf(false) }
-
-    // Diálogo de detalle de movimiento
-    var selectedMovementDetail by remember { mutableStateOf<HistoryMovement?>(null) }
-
-    // Lista única de productos para el filtro
-    val productOptions = remember {
-        listOf("Todos") + allMovements.map { it.product }.distinct()
-    }
-
-    // Filtrar los movimientos según los criterios seleccionados
-    val filteredMovements = remember(selectedDate, selectedType, selectedProduct) {
-        allMovements.filter { item ->
-            val matchDate = selectedDate == "Todas" || item.dayKey == selectedDate
-            val matchType = selectedType == "Todos" || item.type.equals(selectedType, ignoreCase = true)
-            val matchProduct = selectedProduct == "Todos" || item.product == selectedProduct
-            matchDate && matchType && matchProduct
-        }
-    }
-
-    // Agrupar movimientos filtrados por fecha
-    val groupedMovements = remember(filteredMovements) {
-        filteredMovements.groupBy { it.dateGroup }
-    }
-
-    val isAnyFilterActive = selectedDate != "Todas" || selectedType != "Todos" || selectedProduct != "Todos"
 
     Scaffold(
         topBar = {
             TopAppBar(
                 title = {
                     Column {
-                        Text("Historial de movimientos", fontWeight = FontWeight.Bold, fontSize = 20.sp, color = Color.White)
                         Text(
-                            "Registro completo de entradas y salidas",
+                            text = "Historial de movimientos",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = Color.White
+                        )
+                        Text(
+                            text = "Registro completo de entradas y salidas",
                             fontSize = 12.sp,
                             color = Color.White.copy(alpha = 0.8f)
                         )
@@ -112,13 +94,13 @@ fun MovementHistoryScreen(
                     }
                 },
                 actions = {
-                    if (isAnyFilterActive) {
-                        IconButton(onClick = {
-                            selectedDate = "Todas"
-                            selectedType = "Todos"
-                            selectedProduct = "Todos"
-                        }) {
-                            Icon(imageVector = Icons.Default.Clear, contentDescription = "Limpiar filtros", tint = Color.White)
+                    if (uiState.isAnyFilterActive) {
+                        IconButton(onClick = onClearFilters) {
+                            Icon(
+                                imageVector = Icons.Default.Clear,
+                                contentDescription = "Limpiar filtros",
+                                tint = Color.White
+                            )
                         }
                     }
                 },
@@ -157,8 +139,8 @@ fun MovementHistoryScreen(
                     // Filtro por Fecha
                     Box {
                         FilterChipButton(
-                            label = if (selectedDate == "Todas") "Fecha" else selectedDate,
-                            isActive = selectedDate != "Todas",
+                            label = if (uiState.selectedDate == "Todas") "Fecha" else uiState.selectedDate,
+                            isActive = uiState.selectedDate != "Todas",
                             onClick = { dateMenuExpanded = true }
                         )
                         DropdownMenu(
@@ -169,7 +151,7 @@ fun MovementHistoryScreen(
                                 DropdownMenuItem(
                                     text = { Text(dateOption) },
                                     onClick = {
-                                        selectedDate = dateOption
+                                        onDateFilterChange(dateOption)
                                         dateMenuExpanded = false
                                     }
                                 )
@@ -180,19 +162,27 @@ fun MovementHistoryScreen(
                     // Filtro por Tipo
                     Box {
                         FilterChipButton(
-                            label = if (selectedType == "Todos") "Tipo" else if (selectedType == "ENTRADA") "Entradas" else "Salidas",
-                            isActive = selectedType != "Todos",
+                            label = when (uiState.selectedType) {
+                                "ENTRADA" -> "Entradas"
+                                "SALIDA" -> "Salidas"
+                                else -> "Tipo"
+                            },
+                            isActive = uiState.selectedType != "Todos",
                             onClick = { typeMenuExpanded = true }
                         )
                         DropdownMenu(
                             expanded = typeMenuExpanded,
                             onDismissRequest = { typeMenuExpanded = false }
                         ) {
-                            listOf("Todos" to "Todos", "ENTRADA" to "Entradas", "SALIDA" to "Salidas").forEach { (typeVal, typeLabel) ->
+                            listOf(
+                                "Todos" to "Todos",
+                                "ENTRADA" to "Entradas",
+                                "SALIDA" to "Salidas"
+                            ).forEach { (typeVal, typeLabel) ->
                                 DropdownMenuItem(
                                     text = { Text(typeLabel) },
                                     onClick = {
-                                        selectedType = typeVal
+                                        onTypeFilterChange(typeVal)
                                         typeMenuExpanded = false
                                     }
                                 )
@@ -200,22 +190,26 @@ fun MovementHistoryScreen(
                         }
                     }
 
-                    // Filtro por Producto
+                    // Filtro por Producto (las opciones salen de los datos y no de un remember)
                     Box {
                         FilterChipButton(
-                            label = if (selectedProduct == "Todos") "Producto" else selectedProduct.take(10) + "…",
-                            isActive = selectedProduct != "Todos",
+                            label = if (uiState.selectedProduct == "Todos") {
+                                "Producto"
+                            } else {
+                                uiState.selectedProduct.take(10) + if (uiState.selectedProduct.length > 10) "…" else ""
+                            },
+                            isActive = uiState.selectedProduct != "Todos",
                             onClick = { productMenuExpanded = true }
                         )
                         DropdownMenu(
                             expanded = productMenuExpanded,
                             onDismissRequest = { productMenuExpanded = false }
                         ) {
-                            productOptions.forEach { prod ->
+                            uiState.productOptions.forEach { prod ->
                                 DropdownMenuItem(
                                     text = { Text(prod) },
                                     onClick = {
-                                        selectedProduct = prod
+                                        onProductFilterChange(prod)
                                         productMenuExpanded = false
                                     }
                                 )
@@ -224,8 +218,16 @@ fun MovementHistoryScreen(
                     }
                 }
 
-                // Si no hay resultados
-                if (groupedMovements.isEmpty()) {
+                if (uiState.isLoading) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 48.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(color = SecondaryTeal)
+                    }
+                } else if (uiState.groupedMovements.isEmpty()) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
@@ -254,11 +256,7 @@ fun MovementHistoryScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Button(
-                                onClick = {
-                                    selectedDate = "Todas"
-                                    selectedType = "Todos"
-                                    selectedProduct = "Todos"
-                                },
+                                onClick = onClearFilters,
                                 colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
                             ) {
                                 Text("Restablecer filtros", color = Color.White)
@@ -266,8 +264,8 @@ fun MovementHistoryScreen(
                         }
                     }
                 } else {
-                    // Lista agrupada por fecha
-                    groupedMovements.forEach { (dateHeader, movementsInGroup) ->
+                    // Lista agrupada por día ya filtrada
+                    uiState.groupedMovements.forEach { (dateHeader, movementsInGroup) ->
                         Text(
                             text = dateHeader,
                             fontWeight = FontWeight.Bold,
@@ -279,7 +277,7 @@ fun MovementHistoryScreen(
                         movementsInGroup.forEach { movement ->
                             HistoryItemCard(
                                 movement = movement,
-                                onClick = { selectedMovementDetail = movement }
+                                onClick = { onSelectMovement(movement) }
                             )
                         }
                     }
@@ -290,22 +288,27 @@ fun MovementHistoryScreen(
         }
     }
 
-    // Modal con detalles del movimiento al pulsar un elemento
-    selectedMovementDetail?.let { mov ->
+    // Modal con detalles del movimiento al pulsar un elemento (estado vive en el ViewModel)
+    uiState.selectedMovement?.let { mov ->
+        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
+        val dateFormatter = DateTimeFormatter.ofPattern("d 'de' MMMM yyyy", Locale.forLanguageTag("es"))
         AlertDialog(
-            onDismissRequest = { selectedMovementDetail = null },
+            onDismissRequest = onDismissDetail,
             title = { Text("Detalle del Movimiento") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Producto: ${mov.product}", fontWeight = FontWeight.Bold)
-                    Text("Tipo: ${mov.type} (${if (mov.isEntry) "Ingreso a almacén" else "Salida de almacén"})")
-                    Text("Cantidad: ${mov.quantity} unidades")
-                    Text("Fecha y Registro: ${mov.dateGroup} · ${mov.userTime}")
-                    Text("Observación: ${mov.note}")
+                    Text("Producto: ${mov.productoNombre}", fontWeight = FontWeight.Bold)
+                    Text("Tipo: ${mov.tipo.name} (${if (mov.esEntrada) "Ingreso a almacén" else "Salida de almacén"})")
+                    Text("Cantidad: ${mov.cantidad} unidades")
+                    Text("Fecha: ${mov.fecha.format(dateFormatter)} a las ${mov.fecha.format(timeFormatter)}")
+                    Text("Registrado por: ${mov.usuario}")
+                    if (mov.nota.isNotBlank()) {
+                        Text("Observación: ${mov.nota}")
+                    }
                 }
             },
             confirmButton = {
-                TextButton(onClick = { selectedMovementDetail = null }) {
+                TextButton(onClick = onDismissDetail) {
                     Text("Cerrar", color = SecondaryTeal)
                 }
             }
@@ -317,13 +320,14 @@ fun MovementHistoryScreen(
 fun FilterChipButton(
     label: String,
     isActive: Boolean,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     Surface(
         color = if (isActive) SecondaryTeal else MaterialTheme.colorScheme.surfaceVariant,
         contentColor = if (isActive) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
         shape = Shapes.small,
-        modifier = Modifier
+        modifier = modifier
             .height(36.dp)
             .clickable { onClick() }
     ) {
@@ -348,11 +352,14 @@ fun FilterChipButton(
 
 @Composable
 fun HistoryItemCard(
-    movement: HistoryMovement,
-    onClick: () -> Unit
+    movement: Movimiento,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
+    val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
+
     Card(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .padding(vertical = 4.dp)
             .clickable { onClick() },
@@ -372,13 +379,13 @@ fun HistoryItemCard(
             ) {
                 // Etiqueta visual de Entrada/Salida con estilo consistente
                 Surface(
-                    color = if (movement.isEntry) AvailableGreen.copy(alpha = 0.18f) else CriticalRed.copy(alpha = 0.18f),
+                    color = if (movement.esEntrada) AvailableGreen.copy(alpha = 0.18f) else CriticalRed.copy(alpha = 0.18f),
                     shape = Shapes.small,
                     modifier = Modifier.padding(end = 12.dp)
                 ) {
                     Text(
-                        text = movement.type,
-                        color = if (movement.isEntry) AvailableGreen else CriticalRed,
+                        text = movement.tipo.name,
+                        color = if (movement.esEntrada) AvailableGreen else CriticalRed,
                         fontSize = 10.sp,
                         fontWeight = FontWeight.Bold,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -386,22 +393,22 @@ fun HistoryItemCard(
                 }
                 Column {
                     Text(
-                        text = movement.product,
+                        text = movement.productoNombre,
                         fontWeight = FontWeight.SemiBold,
                         fontSize = 15.sp,
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
-                        text = movement.userTime,
+                        text = "${movement.usuario} - ${movement.fecha.format(timeFormatter)}",
                         fontSize = 12.sp,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
             Text(
-                text = movement.quantity,
+                text = if (movement.esEntrada) "+${movement.cantidad}" else "-${movement.cantidad}",
                 fontWeight = FontWeight.Bold,
-                color = if (movement.isEntry) AvailableGreen else CriticalRed,
+                color = if (movement.esEntrada) AvailableGreen else CriticalRed,
                 fontSize = 17.sp,
                 modifier = Modifier.padding(start = 8.dp)
             )

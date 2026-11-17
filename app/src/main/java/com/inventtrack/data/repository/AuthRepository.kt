@@ -21,4 +21,7 @@ interface AuthRepository {
     suspend fun sendPasswordRecovery(email: String): Result<Unit>
 
     suspend fun logout()
+
+    /** Extrae un nombre visible para mostrar a partir del correo electrónico. */
+    fun displayNameFromEmail(email: String): String
 }

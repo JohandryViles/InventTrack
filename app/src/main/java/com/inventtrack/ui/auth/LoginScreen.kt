@@ -1,4 +1,4 @@
-package com.inventtrack.ui.screens
+package com.inventtrack.ui.auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -25,6 +25,10 @@ import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.di.AppViewModelProvider
+import com.inventtrack.ui.components.ObserveAsEvents
 import com.inventtrack.ui.components.OutlinedSecondaryButton
 import com.inventtrack.ui.components.PrimaryButton
 import com.inventtrack.ui.theme.CriticalRed
@@ -32,32 +36,48 @@ import com.inventtrack.ui.theme.SecondaryTeal
 import com.inventtrack.ui.theme.Shapes
 
 @Composable
-fun LoginScreen(
-    onLoginClick: (name: String, email: String) -> Unit,
-    onRegisterClick: () -> Unit
+fun LoginRoute(
+    onLoginSuccess: () -> Unit,
+    onRegisterClick: () -> Unit,
+    viewModel: LoginViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
-    // Validaciones simples con remember y mutableStateOf
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var showForgotPasswordDialog by remember { mutableStateOf(false) }
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
-    val focusManager = LocalFocusManager.current
-
-    fun validateAndLogin() {
-        errorMessage = when {
-            email.trim().isEmpty() -> "Por favor ingresa tu correo electrónico."
-            !email.contains("@") || !email.contains(".") -> "Ingresa un correo electrónico válido."
-            password.isEmpty() -> "Por favor ingresa tu contraseña."
-            password.length < 6 -> "La contraseña debe tener al menos 6 caracteres."
-            else -> null
-        }
-
-        if (errorMessage == null) {
-            onLoginClick(displayNameFromEmail(email), email.trim())
+    ObserveAsEvents(viewModel.events) { event ->
+        when (event) {
+            LoginEvent.LoginSuccess -> onLoginSuccess()
         }
     }
+
+    LoginScreen(
+        uiState = uiState,
+        onEmailChange = viewModel::onEmailChange,
+        onPasswordChange = viewModel::onPasswordChange,
+        onLoginClick = viewModel::login,
+        onDemoLoginClick = viewModel::loginDemo,
+        onOpenRecoveryDialog = viewModel::openRecoveryDialog,
+        onDismissRecoveryDialog = viewModel::dismissRecoveryDialog,
+        onRecoveryEmailChange = viewModel::onRecoveryEmailChange,
+        onSendRecovery = viewModel::sendPasswordRecovery,
+        onRegisterClick = onRegisterClick
+    )
+}
+
+@Composable
+fun LoginScreen(
+    uiState: LoginUiState,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onLoginClick: () -> Unit,
+    onDemoLoginClick: () -> Unit,
+    onOpenRecoveryDialog: () -> Unit,
+    onDismissRecoveryDialog: () -> Unit,
+    onRecoveryEmailChange: (String) -> Unit,
+    onSendRecovery: () -> Unit,
+    onRegisterClick: () -> Unit
+) {
+    var passwordVisible by remember { mutableStateOf(false) }
+    val focusManager = LocalFocusManager.current
 
     Box(
         modifier = Modifier
@@ -102,22 +122,20 @@ fun LoginScreen(
 
             // Campo de Correo
             OutlinedTextField(
-                value = email,
-                onValueChange = {
-                    email = it
-                    if (errorMessage != null) errorMessage = null
-                },
+                value = uiState.email,
+                onValueChange = onEmailChange,
                 label = { Text("Correo electrónico") },
                 placeholder = { Text("ejemplo@correo.com") },
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Email, contentDescription = "Email")
                 },
-                isError = errorMessage != null && (email.trim().isEmpty() || !email.contains("@")),
+                isError = uiState.error != null && (uiState.email.trim().isEmpty() || !uiState.email.contains("@")),
                 shape = Shapes.medium,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = SecondaryTeal,
                     focusedLabelColor = SecondaryTeal
                 ),
+                enabled = !uiState.isLoading,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
                     imeAction = ImeAction.Next
@@ -133,11 +151,8 @@ fun LoginScreen(
 
             // Campo de Contraseña
             OutlinedTextField(
-                value = password,
-                onValueChange = {
-                    password = it
-                    if (errorMessage != null) errorMessage = null
-                },
+                value = uiState.password,
+                onValueChange = onPasswordChange,
                 label = { Text("Contraseña") },
                 leadingIcon = {
                     Icon(imageVector = Icons.Default.Lock, contentDescription = "Contraseña")
@@ -151,12 +166,13 @@ fun LoginScreen(
                     }
                 },
                 visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                isError = errorMessage != null && (password.isEmpty() || password.length < 6),
+                isError = uiState.error != null && (uiState.password.isEmpty() || uiState.password.length < 6),
                 shape = Shapes.medium,
                 colors = OutlinedTextFieldDefaults.colors(
                     focusedBorderColor = SecondaryTeal,
                     focusedLabelColor = SecondaryTeal
                 ),
+                enabled = !uiState.isLoading,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done
@@ -164,7 +180,7 @@ fun LoginScreen(
                 keyboardActions = KeyboardActions(
                     onDone = {
                         focusManager.clearFocus()
-                        validateAndLogin()
+                        onLoginClick()
                     }
                 ),
                 modifier = Modifier.fillMaxWidth(),
@@ -172,7 +188,7 @@ fun LoginScreen(
             )
 
             // Mensaje de error
-            errorMessage?.let { error ->
+            uiState.error?.let { error ->
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
                     text = error,
@@ -184,7 +200,8 @@ fun LoginScreen(
 
             // ¿Olvidaste tu contraseña?
             TextButton(
-                onClick = { showForgotPasswordDialog = true },
+                onClick = onOpenRecoveryDialog,
+                enabled = !uiState.isLoading,
                 modifier = Modifier.align(Alignment.End)
             ) {
                 Text(
@@ -196,22 +213,29 @@ fun LoginScreen(
 
             Spacer(modifier = Modifier.height(20.dp))
 
-            // Botón Iniciar Sesión usando componente reutilizable PrimaryButton
-            PrimaryButton(
-                text = "Iniciar sesión",
-                onClick = {
-                    focusManager.clearFocus()
-                    validateAndLogin()
-                },
-                modifier = Modifier.fillMaxWidth()
-            )
+            // Botón Iniciar Sesión
+            if (uiState.isLoading) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(40.dp),
+                    color = SecondaryTeal
+                )
+            } else {
+                PrimaryButton(
+                    text = "Iniciar sesión",
+                    onClick = {
+                        focusManager.clearFocus()
+                        onLoginClick()
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Botón de acceso rápido modo demo usando OutlinedSecondaryButton
+            // Botón de acceso rápido modo demo
             OutlinedSecondaryButton(
                 text = "Acceder en modo demo",
-                onClick = { onLoginClick("Usuario Demo", "demo@inventtrack.com") },
+                onClick = onDemoLoginClick,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -227,7 +251,10 @@ fun LoginScreen(
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                TextButton(onClick = onRegisterClick) {
+                TextButton(
+                    onClick = onRegisterClick,
+                    enabled = !uiState.isLoading
+                ) {
                     Text(
                         text = "Crear una cuenta",
                         fontWeight = FontWeight.Bold,
@@ -238,25 +265,23 @@ fun LoginScreen(
         }
     }
 
-    // Diálogo de recuperación de contraseña
-    if (showForgotPasswordDialog) {
-        var recoveryEmail by remember { mutableStateOf(email) }
-        var recoverySent by remember { mutableStateOf(false) }
-
+    // Diálogo de recuperación de contraseña controlado por ViewModel
+    if (uiState.showRecoveryDialog) {
         AlertDialog(
-            onDismissRequest = { showForgotPasswordDialog = false },
-            title = { Text(if (recoverySent) "Correo enviado" else "¿Olvidaste tu contraseña?") },
+            onDismissRequest = onDismissRecoveryDialog,
+            title = { Text(if (uiState.recoverySent) "Correo enviado" else "¿Olvidaste tu contraseña?") },
             text = {
-                if (recoverySent) {
-                    Text("Se han enviado las instrucciones de recuperación a $recoveryEmail (Simulación de demo).")
+                if (uiState.recoverySent) {
+                    Text("Se han enviado las instrucciones de recuperación a ${uiState.recoveryEmail} (Simulación de demo).")
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Text("Ingresa tu correo para recibir un enlace de restablecimiento:")
                         OutlinedTextField(
-                            value = recoveryEmail,
-                            onValueChange = { recoveryEmail = it },
+                            value = uiState.recoveryEmail,
+                            onValueChange = onRecoveryEmailChange,
                             label = { Text("Correo electrónico") },
                             singleLine = true,
+                            isError = uiState.recoveryError != null,
                             shape = Shapes.medium,
                             colors = OutlinedTextFieldDefaults.colors(
                                 focusedBorderColor = SecondaryTeal,
@@ -264,30 +289,34 @@ fun LoginScreen(
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
+                        uiState.recoveryError?.let { err ->
+                            Text(text = err, color = CriticalRed, style = MaterialTheme.typography.bodySmall)
+                        }
                     }
                 }
             },
             confirmButton = {
-                if (recoverySent) {
-                    TextButton(onClick = { showForgotPasswordDialog = false }) {
+                if (uiState.recoverySent) {
+                    TextButton(onClick = onDismissRecoveryDialog) {
                         Text("Aceptar")
                     }
                 } else {
                     Button(
-                        onClick = {
-                            if (recoveryEmail.isNotBlank()) {
-                                recoverySent = true
-                            }
-                        },
+                        onClick = onSendRecovery,
+                        enabled = !uiState.isRecoveryLoading,
                         colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
                     ) {
-                        Text("Enviar enlace")
+                        if (uiState.isRecoveryLoading) {
+                            CircularProgressIndicator(modifier = Modifier.size(18.dp), color = MaterialTheme.colorScheme.surface)
+                        } else {
+                            Text("Enviar enlace")
+                        }
                     }
                 }
             },
             dismissButton = {
-                if (!recoverySent) {
-                    TextButton(onClick = { showForgotPasswordDialog = false }) {
+                if (!uiState.recoverySent) {
+                    TextButton(onClick = onDismissRecoveryDialog) {
                         Text("Cancelar")
                     }
                 }
@@ -295,11 +324,3 @@ fun LoginScreen(
         )
     }
 }
-
-private fun displayNameFromEmail(email: String): String =
-    email.substringBefore("@")
-        .split('.', '_', '-')
-        .map { it.trim() }
-        .filter { it.isNotEmpty() }
-        .joinToString(" ") { it.replaceFirstChar { first -> first.uppercaseChar() } }
-        .ifBlank { "Usuario" }
