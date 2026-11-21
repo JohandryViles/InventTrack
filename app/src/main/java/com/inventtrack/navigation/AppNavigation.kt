@@ -11,6 +11,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.*
 import com.inventtrack.di.AppViewModelProvider
+import com.inventtrack.ui.auth.LoginRoute
+import com.inventtrack.ui.auth.RegisterRoute
+import com.inventtrack.ui.history.MovementHistoryRoute
 import com.inventtrack.ui.screens.*
 import com.inventtrack.ui.analytics.AnalyticsRoute
 import com.inventtrack.ui.movements.MovementRoute
@@ -68,19 +71,17 @@ fun InventTrackApp(
                 )
             }
             composable(Routes.LOGIN) {
-                LoginScreen(
-                    onLoginClick = { name, email ->
-                        sessionViewModel.startSession(name, email)
+                LoginRoute(
+                    onLoginSuccess = {
                         navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
                     },
                     onRegisterClick = { go(Routes.REGISTER) }
                 )
             }
             composable(Routes.REGISTER) {
-                RegisterScreen(
+                RegisterRoute(
                     onBackClick = { navController.popBackStack() },
-                    onRegisterClick = { name, email ->
-                        sessionViewModel.startSession(name, email)
+                    onRegisterSuccess = {
                         navController.navigate(Routes.HOME) { popUpTo(Routes.LOGIN) { inclusive = true } }
                     }
                 )
@@ -107,7 +108,7 @@ fun InventTrackApp(
             }
             composable(Routes.CATEGORIES) { CategoryScreen() }
             composable(Routes.HISTORY) {
-                MovementHistoryScreen(
+                MovementHistoryRoute(
                     onBackClick = { navController.popBackStack() }
                 )
             }

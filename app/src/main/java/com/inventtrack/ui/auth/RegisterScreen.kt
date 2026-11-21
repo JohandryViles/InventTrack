@@ -1,4 +1,4 @@
-package com.inventtrack.ui.screens
+package com.inventtrack.ui.auth
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -26,6 +26,10 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.di.AppViewModelProvider
+import com.inventtrack.ui.components.ObserveAsEvents
 import com.inventtrack.ui.components.OutlinedSecondaryButton
 import com.inventtrack.ui.components.PrimaryButton
 import com.inventtrack.ui.theme.CriticalRed
@@ -33,41 +37,47 @@ import com.inventtrack.ui.theme.PrimaryDarkBlue
 import com.inventtrack.ui.theme.SecondaryTeal
 import com.inventtrack.ui.theme.Shapes
 
+@Composable
+fun RegisterRoute(
+    onBackClick: () -> Unit,
+    onRegisterSuccess: () -> Unit,
+    viewModel: RegisterViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    ObserveAsEvents(viewModel.events) { event ->
+        when (event) {
+            RegisterEvent.RegisterSuccess -> onRegisterSuccess()
+        }
+    }
+
+    RegisterScreen(
+        uiState = uiState,
+        onNameChange = viewModel::onNameChange,
+        onEmailChange = viewModel::onEmailChange,
+        onPasswordChange = viewModel::onPasswordChange,
+        onConfirmPasswordChange = viewModel::onConfirmPasswordChange,
+        onRegisterClick = viewModel::register,
+        onConfirmSuccess = viewModel::confirmSuccess,
+        onBackClick = onBackClick
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterScreen(
-    onBackClick: () -> Unit,
-    onRegisterClick: (name: String, email: String) -> Unit
+    uiState: RegisterUiState,
+    onNameChange: (String) -> Unit,
+    onEmailChange: (String) -> Unit,
+    onPasswordChange: (String) -> Unit,
+    onConfirmPasswordChange: (String) -> Unit,
+    onRegisterClick: () -> Unit,
+    onConfirmSuccess: () -> Unit,
+    onBackClick: () -> Unit
 ) {
-    // Validaciones simples con remember y mutableStateOf
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-
     var passwordVisible by remember { mutableStateOf(false) }
     var confirmPasswordVisible by remember { mutableStateOf(false) }
-    var errorMessage by remember { mutableStateOf<String?>(null) }
-    var showSuccessDialog by remember { mutableStateOf(false) }
-
     val focusManager = LocalFocusManager.current
-
-    fun validateAndRegister() {
-        errorMessage = when {
-            name.trim().isEmpty() -> "Por favor ingresa tu nombre completo."
-            name.trim().length < 3 -> "El nombre debe tener al menos 3 caracteres."
-            email.trim().isEmpty() -> "Por favor ingresa tu correo electrónico."
-            !email.contains("@") || !email.contains(".") -> "Ingresa un correo electrónico válido."
-            password.isEmpty() -> "Por favor ingresa tu contraseña."
-            password.length < 8 -> "La contraseña debe tener al menos 8 caracteres."
-            password != confirmPassword -> "Las contraseñas no coinciden."
-            else -> null
-        }
-
-        if (errorMessage == null) {
-            showSuccessDialog = true
-        }
-    }
 
     Scaffold(
         topBar = {
@@ -113,22 +123,20 @@ fun RegisterScreen(
 
                 // Campo Nombre
                 OutlinedTextField(
-                    value = name,
-                    onValueChange = {
-                        name = it
-                        if (errorMessage != null) errorMessage = null
-                    },
+                    value = uiState.name,
+                    onValueChange = onNameChange,
                     label = { Text("Nombre completo") },
                     placeholder = { Text("Ej: Andy García") },
                     leadingIcon = {
                         Icon(imageVector = Icons.Default.Person, contentDescription = "Nombre")
                     },
-                    isError = errorMessage != null && (name.trim().isEmpty() || name.trim().length < 3),
+                    isError = uiState.error != null && (uiState.name.trim().isEmpty() || uiState.name.trim().length < 3),
                     shape = Shapes.medium,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SecondaryTeal,
                         focusedLabelColor = SecondaryTeal
                     ),
+                    enabled = !uiState.isLoading,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Text,
                         imeAction = ImeAction.Next
@@ -144,22 +152,20 @@ fun RegisterScreen(
 
                 // Campo Correo electrónico
                 OutlinedTextField(
-                    value = email,
-                    onValueChange = {
-                        email = it
-                        if (errorMessage != null) errorMessage = null
-                    },
+                    value = uiState.email,
+                    onValueChange = onEmailChange,
                     label = { Text("Correo electrónico") },
                     placeholder = { Text("ejemplo@correo.com") },
                     leadingIcon = {
                         Icon(imageVector = Icons.Default.Email, contentDescription = "Correo")
                     },
-                    isError = errorMessage != null && (email.trim().isEmpty() || !email.contains("@")),
+                    isError = uiState.error != null && (uiState.email.trim().isEmpty() || !uiState.email.contains("@")),
                     shape = Shapes.medium,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SecondaryTeal,
                         focusedLabelColor = SecondaryTeal
                     ),
+                    enabled = !uiState.isLoading,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Email,
                         imeAction = ImeAction.Next
@@ -175,11 +181,8 @@ fun RegisterScreen(
 
                 // Campo Contraseña
                 OutlinedTextField(
-                    value = password,
-                    onValueChange = {
-                        password = it
-                        if (errorMessage != null) errorMessage = null
-                    },
+                    value = uiState.password,
+                    onValueChange = onPasswordChange,
                     label = { Text("Contraseña (Mínimo 8 caracteres)") },
                     leadingIcon = {
                         Icon(imageVector = Icons.Default.Lock, contentDescription = "Contraseña")
@@ -193,12 +196,13 @@ fun RegisterScreen(
                         }
                     },
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    isError = errorMessage != null && (password.isEmpty() || password.length < 8),
+                    isError = uiState.error != null && (uiState.password.isEmpty() || uiState.password.length < 8),
                     shape = Shapes.medium,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SecondaryTeal,
                         focusedLabelColor = SecondaryTeal
                     ),
+                    enabled = !uiState.isLoading,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Next
@@ -214,11 +218,8 @@ fun RegisterScreen(
 
                 // Campo Confirmar Contraseña
                 OutlinedTextField(
-                    value = confirmPassword,
-                    onValueChange = {
-                        confirmPassword = it
-                        if (errorMessage != null) errorMessage = null
-                    },
+                    value = uiState.confirmPassword,
+                    onValueChange = onConfirmPasswordChange,
                     label = { Text("Confirmar contraseña") },
                     leadingIcon = {
                         Icon(imageVector = Icons.Default.Lock, contentDescription = "Confirmar contraseña")
@@ -232,12 +233,13 @@ fun RegisterScreen(
                         }
                     },
                     visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                    isError = errorMessage != null && (confirmPassword != password),
+                    isError = uiState.error != null && (uiState.confirmPassword != uiState.password),
                     shape = Shapes.medium,
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SecondaryTeal,
                         focusedLabelColor = SecondaryTeal
                     ),
+                    enabled = !uiState.isLoading,
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Password,
                         imeAction = ImeAction.Done
@@ -245,7 +247,7 @@ fun RegisterScreen(
                     keyboardActions = KeyboardActions(
                         onDone = {
                             focusManager.clearFocus()
-                            validateAndRegister()
+                            onRegisterClick()
                         }
                     ),
                     modifier = Modifier.fillMaxWidth(),
@@ -253,7 +255,7 @@ fun RegisterScreen(
                 )
 
                 // Mensaje de error si falla la validación
-                errorMessage?.let { error ->
+                uiState.error?.let { error ->
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = error,
@@ -265,19 +267,26 @@ fun RegisterScreen(
 
                 Spacer(modifier = Modifier.height(28.dp))
 
-                // Botón Registrarme usando componente PrimaryButton
-                PrimaryButton(
-                    text = "Registrarme",
-                    onClick = {
-                        focusManager.clearFocus()
-                        validateAndRegister()
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Botón Registrarme
+                if (uiState.isLoading) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(40.dp),
+                        color = SecondaryTeal
+                    )
+                } else {
+                    PrimaryButton(
+                        text = "Registrarme",
+                        onClick = {
+                            focusManager.clearFocus()
+                            onRegisterClick()
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
 
                 Spacer(modifier = Modifier.height(16.dp))
 
-                // Botón volver a iniciar sesión usando OutlinedSecondaryButton
+                // Botón volver a iniciar sesión
                 OutlinedSecondaryButton(
                     text = "Volver a iniciar sesión",
                     onClick = onBackClick,
@@ -288,20 +297,14 @@ fun RegisterScreen(
     }
 
     // Modal de confirmación de registro exitoso
-    if (showSuccessDialog) {
+    if (uiState.isSuccess) {
         AlertDialog(
-            onDismissRequest = {
-                showSuccessDialog = false
-                onRegisterClick(name.trim(), email.trim())
-            },
+            onDismissRequest = onConfirmSuccess,
             title = { Text("¡Registro exitoso!") },
-            text = { Text("Tu cuenta ha sido creada correctamente con el nombre $name. Ya puedes comenzar a gestionar tu inventario.") },
+            text = { Text("Tu cuenta ha sido creada correctamente con el nombre ${uiState.name}. Ya puedes comenzar a gestionar tu inventario.") },
             confirmButton = {
                 Button(
-                    onClick = {
-                        showSuccessDialog = false
-                        onRegisterClick(name.trim(), email.trim())
-                    },
+                    onClick = onConfirmSuccess,
                     colors = ButtonDefaults.buttonColors(containerColor = SecondaryTeal)
                 ) {
                     Text("Continuar")
