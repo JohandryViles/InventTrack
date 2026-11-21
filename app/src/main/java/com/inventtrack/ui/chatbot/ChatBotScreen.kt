@@ -1,4 +1,4 @@
-package com.inventtrack.ui.screens
+package com.inventtrack.ui.chatbot
 
 import android.content.res.Configuration
 import androidx.compose.foundation.background
@@ -6,7 +6,10 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material3.*
@@ -15,30 +18,54 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
 import com.inventtrack.data.model.ChatMessage
+import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.components.InventTrackTopBar
 import com.inventtrack.ui.theme.ChatBubbleBot
 import com.inventtrack.ui.theme.ChatBubbleUser
 import com.inventtrack.ui.theme.SecondaryTeal
 
+@Composable
+fun ChatRoute(
+    viewModel: ChatViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val messages by viewModel.messages.collectAsStateWithLifecycle()
+    val input by viewModel.input.collectAsStateWithLifecycle()
+    val isTyping by viewModel.isTyping.collectAsStateWithLifecycle()
+
+    InvenBotScreen(
+        messages = messages,
+        input = input,
+        isTyping = isTyping,
+        onInputChange = viewModel::onInputChange,
+        onSendMessage = viewModel::send
+    )
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun InvenBotScreen() {
-    var textState by remember { mutableStateOf("") }
-    var messages by remember {
-        mutableStateOf(
-            listOf(
-                ChatMessage("¡Hola! Soy InvenBot. ¿En qué puedo ayudarte con tu inventario hoy?", isUser = false),
-                ChatMessage("¿Stock de Azitromicina 500mg?", isUser = true),
-                ChatMessage("Actualmente tienes 5 cajas disponibles.", isUser = false)
-            )
-        )
-    }
-
+fun InvenBotScreen(
+    messages: List<ChatMessage> = emptyList(),
+    input: String = "",
+    isTyping: Boolean = false,
+    onInputChange: (String) -> Unit = {},
+    onSendMessage: (String?) -> Unit = {}
+) {
     val suggestions = listOf("¿Qué productos tienen stock bajo?", "¿Qué entradas hubo hoy?", "Stock de Paracetamol")
     val configuration = LocalConfiguration.current
     val isLandscape = configuration.orientation == Configuration.ORIENTATION_LANDSCAPE
+    val listState = rememberLazyListState()
+
+    LaunchedEffect(messages.size, isTyping) {
+        val totalCount = messages.size + if (isTyping) 1 else 0
+        if (totalCount > 0) {
+            listState.animateScrollToItem(totalCount - 1)
+        }
+    }
 
     Scaffold(
         topBar = {
@@ -63,6 +90,7 @@ fun InvenBotScreen() {
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             LazyColumn(
+                state = listState,
                 modifier = Modifier
                     .weight(1f)
                     .widthIn(max = 800.dp)
@@ -73,6 +101,36 @@ fun InvenBotScreen() {
                 items(messages) { msg ->
                     ChatBubble(message = msg)
                     Spacer(modifier = Modifier.height(6.dp))
+                }
+
+                if (isTyping) {
+                    item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Start
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .widthIn(max = 280.dp)
+                                    .background(
+                                        color = ChatBubbleBot,
+                                        shape = RoundedCornerShape(
+                                            topStart = 16.dp,
+                                            topEnd = 16.dp,
+                                            bottomStart = 4.dp,
+                                            bottomEnd = 16.dp
+                                        )
+                                    )
+                                    .padding(12.dp)
+                            ) {
+                                Text(
+                                    text = "InvenBot está escribiendo...",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color.DarkGray
+                                )
+                            }
+                        }
+                    }
                 }
             }
 
@@ -89,10 +147,17 @@ fun InvenBotScreen() {
                 items(suggestions) { suggestion ->
                     SuggestionChip(
                         onClick = {
-                            messages = messages + ChatMessage(suggestion, isUser = true)
-                            messages = messages + ChatMessage("Esta es una respuesta simulada para: '$suggestion'.", isUser = false)
+                            if (!isTyping) {
+                                onSendMessage(suggestion)
+                            }
                         },
-                        label = { Text(suggestion, style = if (isLandscape) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium) },
+                        enabled = !isTyping,
+                        label = {
+                            Text(
+                                suggestion,
+                                style = if (isLandscape) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium
+                            )
+                        },
                         colors = SuggestionChipDefaults.suggestionChipColors(
                             containerColor = MaterialTheme.colorScheme.surface
                         )
@@ -111,12 +176,24 @@ fun InvenBotScreen() {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 OutlinedTextField(
-                    value = textState,
-                    onValueChange = { textState = it },
-                    placeholder = { Text("Escribe una pregunta...", style = if (isLandscape) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium) },
+                    value = input,
+                    onValueChange = onInputChange,
+                    placeholder = {
+                        Text(
+                            "Escribe una pregunta...",
+                            style = if (isLandscape) MaterialTheme.typography.bodySmall else MaterialTheme.typography.bodyMedium
+                        )
+                    },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
+                    enabled = !isTyping,
                     shape = RoundedCornerShape(24.dp),
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send),
+                    keyboardActions = KeyboardActions(onSend = {
+                        if (input.isNotBlank() && !isTyping) {
+                            onSendMessage(null)
+                        }
+                    }),
                     colors = OutlinedTextFieldDefaults.colors(
                         focusedBorderColor = SecondaryTeal
                     )
@@ -124,15 +201,17 @@ fun InvenBotScreen() {
                 Spacer(modifier = Modifier.width(8.dp))
                 IconButton(
                     onClick = {
-                        if (textState.isNotBlank()) {
-                            messages = messages + ChatMessage(textState, isUser = true)
-                            textState = ""
-                            messages = messages + ChatMessage("Respuesta simulada generada por InvenBot.", isUser = false)
+                        if (input.isNotBlank() && !isTyping) {
+                            onSendMessage(null)
                         }
                     },
+                    enabled = input.isNotBlank() && !isTyping,
                     modifier = Modifier
                         .size(if (isLandscape) 42.dp else 48.dp)
-                        .background(SecondaryTeal, shape = RoundedCornerShape(24.dp))
+                        .background(
+                            if (input.isNotBlank() && !isTyping) SecondaryTeal else SecondaryTeal.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(24.dp)
+                        )
                 ) {
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.Send,

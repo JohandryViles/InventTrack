@@ -17,6 +17,8 @@ import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.analytics.AnalyticsRoute
 import com.inventtrack.ui.auth.LoginRoute
 import com.inventtrack.ui.auth.RegisterRoute
+import com.inventtrack.ui.chatbot.ChatRoute
+import com.inventtrack.ui.dashboard.DashboardRoute
 import com.inventtrack.ui.history.MovementHistoryRoute
 import com.inventtrack.ui.movements.MovementRoute
 import com.inventtrack.ui.screens.*
@@ -92,8 +94,7 @@ fun InventTrackApp(
                 )
             }
             composable(Routes.HOME) {
-                DashboardScreen(
-                    userName = userName,
+                DashboardRoute(
                     onRegisterMovementClick = { go(Routes.MOVEMENT_FORM) },
                     onAddProductClick = { go(Routes.PRODUCT_FORM) },
                     onOpenChatbotClick = { go(Routes.CHATBOT) }
@@ -125,7 +126,7 @@ fun InventTrackApp(
                     onBackClick = { navController.popBackStack() }
                 )
             }
-            composable(Routes.CHATBOT) { InvenBotScreen() }
+            composable(Routes.CHATBOT) { ChatRoute() }
             composable(Routes.MOVEMENT_FORM) { MovementRoute() }
             composable(Routes.ANALYTICS) { AnalyticsRoute() }
             composable(Routes.SETTINGS) {
