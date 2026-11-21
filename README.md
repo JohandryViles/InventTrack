@@ -24,6 +24,9 @@ com.inventtrack
 │       └── fake/               implementaciones en memoria (StateFlow + delay + Dispatchers.IO)
 ├── ui/
 │   ├── settings/               referencia del patrón: SettingsRoute, SettingsScreen, SettingsViewModel
+│   ├── movements/              formulario, validaciones y registro con repositorios compartidos
+│   ├── analytics/              series, porcentajes y rotación calculados por período
+│   ├── products/               conexión mínima de la lista existente al stock compartido
 │   ├── splash/                 SplashViewModel: carga inicial y decide Login o Inicio según la sesión
 │   ├── session/                SessionViewModel (usuario de la sesión para la navegación)
 │   ├── screens/                pantallas pendientes de migrar
@@ -62,6 +65,25 @@ La interfaz se construye exclusivamente con Compose. Los únicos XML son el mani
 9. Más → Cerrar sesión demo; Atrás no debe volver a pantallas internas.
 
 Todos los destinos tienen un acceso desde la interfaz; los formularios auxiliares regresan con Atrás del sistema. El registro de movimientos y el análisis corresponden a las pantallas 8 y 11.
+
+### Movimientos y Análisis (pantallas 8 y 11)
+
+`MovementRoute` observa `MovementViewModel`, que valida producto y cantidad, bloquea dobles envíos y llama a `MovementRepository.register()`. El stock se lee de `ProductRepository`; el formulario no conserva una copia editable. La confirmación es estado del diálogo y se limpia con Aceptar. La lista de Productos tiene una conexión mínima al mismo repositorio (`ProductStockViewModel`) para poder comprobar el stock en pantalla.
+
+`AnalyticsRoute` observa `AnalyticsViewModel`. Los períodos van desde el lunes, el primer día del mes o el primer día del año hasta hoy. Las barras agrupan por día, bloques de siete días del mes (incluyendo S5) o trimestre. La dona muestra el porcentaje de **unidades de salida** por categoría, redondeado para sumar 100%; sin salidas muestra 0%. Los productos eliminados se agrupan en «Sin categoría».
+
+La rotación es `salidas / ((stock inicial estimado + stock final) / 2)` por categoría. El stock inicial se reconstruye restando el saldo de movimientos del período al final; los movimientos futuros se excluyen de las series y de ese stock final. Si el promedio es cero se muestra «Sin base de stock». Es una estimación porque los datos semilla no contienen un inventario histórico completo.
+
+Prueba manual con una sesión recién iniciada:
+
+1. En Productos, comprobar las 60 unidades de Paracetamol 500mg.
+2. En Más → Análisis, anotar las salidas de la vista Semanal.
+3. En Movim., elegir Salida, Paracetamol 500mg, cantidad 10 y fecha de hoy. Confirmar una vez y aceptar el diálogo.
+4. Volver a Productos: Paracetamol debe mostrar **50 unidades**.
+5. Abrir Más → Análisis: las salidas deben aumentar **10 unidades**, junto con la barra del día, el porcentaje de Analgésicos y su rotación.
+6. Repetir con cantidad vacía, 0, -1, texto, un entero mayor que `Int.MAX_VALUE` y una salida de 51: debe aparecer un error sin modificar el stock. Una entrada de 10 devuelve el stock a 60.
+
+Los fakes son en memoria: al reiniciar el proceso se restauran los datos semilla. `MovementViewModelTest` verifica también el flujo compartido con la lista de Productos y Análisis; `AnalyticsViewModelTest` cubre períodos, S5, categorías, porcentajes, rotación y series vacías.
 
 ## Entrega
 
