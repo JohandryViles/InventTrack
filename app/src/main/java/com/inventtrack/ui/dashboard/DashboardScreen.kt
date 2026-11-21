@@ -1,11 +1,10 @@
-package com.inventtrack.ui.screens
+package com.inventtrack.ui.dashboard
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -20,16 +19,51 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.di.AppViewModelProvider
 import com.inventtrack.ui.theme.AvailableGreen
 import com.inventtrack.ui.theme.CriticalRed
 import com.inventtrack.ui.theme.LowOrange
-import com.inventtrack.ui.theme.PrimaryDarkBlue
 import com.inventtrack.ui.theme.SecondaryTeal
 import com.inventtrack.ui.theme.Shapes
+import java.time.format.DateTimeFormatter
+
+@Composable
+fun DashboardRoute(
+    onRegisterMovementClick: () -> Unit,
+    onAddProductClick: () -> Unit,
+    onOpenChatbotClick: () -> Unit,
+    viewModel: DashboardViewModel = viewModel(factory = AppViewModelProvider.Factory)
+) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+
+    DashboardScreen(
+        uiState = uiState,
+        onRegisterMovementClick = onRegisterMovementClick,
+        onAddProductClick = onAddProductClick,
+        onOpenChatbotClick = onOpenChatbotClick
+    )
+}
 
 @Composable
 fun DashboardScreen(
     userName: String,
+    onRegisterMovementClick: () -> Unit,
+    onAddProductClick: () -> Unit,
+    onOpenChatbotClick: () -> Unit
+) {
+    DashboardScreen(
+        uiState = DashboardUiState(nombreUsuario = userName),
+        onRegisterMovementClick = onRegisterMovementClick,
+        onAddProductClick = onAddProductClick,
+        onOpenChatbotClick = onOpenChatbotClick
+    )
+}
+
+@Composable
+fun DashboardScreen(
+    uiState: DashboardUiState,
     onRegisterMovementClick: () -> Unit,
     onAddProductClick: () -> Unit,
     onOpenChatbotClick: () -> Unit
@@ -78,7 +112,7 @@ fun DashboardScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                         Text(
-                            text = "Hola, $userName \uD83D\uDC4B",
+                            text = if (uiState.nombreUsuario.isNotBlank()) "Hola, ${uiState.nombreUsuario} \uD83D\uDC4B" else "Hola \uD83D\uDC4B",
                             fontSize = 20.sp,
                             fontWeight = FontWeight.Bold,
                             color = MaterialTheme.colorScheme.onSurface
@@ -86,11 +120,21 @@ fun DashboardScreen(
                     }
                 }
                 IconButton(onClick = { showNotificationDialog = true }) {
-                    BadgedBox(
-                        badge = {
-                            Badge(containerColor = CriticalRed) { Text("1", color = Color.White) }
+                    if (uiState.alertas.isNotEmpty()) {
+                        BadgedBox(
+                            badge = {
+                                Badge(containerColor = CriticalRed) {
+                                    Text("${uiState.alertas.size}", color = Color.White)
+                                }
+                            }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Notifications,
+                                contentDescription = "Notificaciones",
+                                tint = MaterialTheme.colorScheme.onSurface
+                            )
                         }
-                    ) {
+                    } else {
                         Icon(
                             imageVector = Icons.Default.Notifications,
                             contentDescription = "Notificaciones",
@@ -102,49 +146,56 @@ fun DashboardScreen(
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Alerta roja de stock crítico
-            Card(
-                colors = CardDefaults.cardColors(containerColor = CriticalRed.copy(alpha = 0.12f)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { showAlertDetailDialog = true },
-                shape = Shapes.medium
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
+            // Alerta roja de stock crítico si existen alertas
+            if (uiState.alertas.isNotEmpty()) {
+                val primerProductoCritico = uiState.productosCriticos.firstOrNull()
+                val mensajeAlerta = primerProductoCritico?.let { "${it.nombre} alcanzó el stock mínimo" }
+                    ?: uiState.alertas.first()
+                Card(
+                    colors = CardDefaults.cardColors(containerColor = CriticalRed.copy(alpha = 0.12f)),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showAlertDetailDialog = true },
+                    shape = Shapes.medium
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Warning,
-                        contentDescription = "Alerta",
-                        tint = CriticalRed,
-                        modifier = Modifier.size(28.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        modifier = Modifier.padding(16.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Warning,
+                            contentDescription = "Alerta",
+                            tint = CriticalRed,
+                            modifier = Modifier.size(28.dp)
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Alerta de Stock Crítico",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = CriticalRed,
+                                fontWeight = FontWeight.Bold
+                            )
+                            Text(
+                                text = mensajeAlerta,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.SemiBold,
+                                fontSize = 14.sp
+                            )
+                        }
                         Text(
-                            text = "Alerta de Stock Crítico",
-                            style = MaterialTheme.typography.labelMedium,
+                            text = "Ver",
+                            style = MaterialTheme.typography.labelSmall,
                             color = CriticalRed,
                             fontWeight = FontWeight.Bold
                         )
-                        Text(
-                            text = "Jarabe pediátrico alcanzó el stock mínimo",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            fontWeight = FontWeight.SemiBold,
-                            fontSize = 14.sp
-                        )
                     }
-                    Text(
-                        text = "Ver",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = CriticalRed,
-                        fontWeight = FontWeight.Bold
-                    )
                 }
-            }
 
-            Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(24.dp))
+            } else {
+                Spacer(modifier = Modifier.height(8.dp))
+            }
 
             // Tarjetas de Resumen
             Text(
@@ -162,15 +213,15 @@ fun DashboardScreen(
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Total productos",
-                    value = "148",
+                    value = "${uiState.totalProductos}",
                     icon = Icons.Default.Inventory2,
                     valueColor = SecondaryTeal
                 )
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Stock bajo",
-                    value = "3",
-                    isAlert = true,
+                    value = "${uiState.stockBajo}",
+                    isAlert = uiState.stockBajo > 0,
                     icon = Icons.Default.ReportProblem,
                     valueColor = LowOrange
                 )
@@ -183,14 +234,14 @@ fun DashboardScreen(
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Entradas hoy",
-                    value = "+12",
+                    value = if (uiState.entradasHoy > 0) "+${uiState.entradasHoy}" else "${uiState.entradasHoy}",
                     valueColor = AvailableGreen,
                     icon = Icons.Default.ArrowDownward
                 )
                 SummaryCard(
                     modifier = Modifier.weight(1f),
                     title = "Salidas hoy",
-                    value = "-8",
+                    value = if (uiState.salidasHoy > 0) "-${uiState.salidasHoy}" else "${uiState.salidasHoy}",
                     valueColor = CriticalRed,
                     icon = Icons.Default.ArrowUpward
                 )
@@ -242,37 +293,31 @@ fun DashboardScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 Text(
-                    text = "Hoy",
+                    text = "Recientes",
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             Spacer(modifier = Modifier.height(8.dp))
 
-            MovementItem(
-                name = "Azitromicina 500mg",
-                time = "09:32",
-                quantity = "+20",
-                isPositive = true
-            )
-            MovementItem(
-                name = "Suero fisiológico",
-                time = "10:15",
-                quantity = "-5",
-                isPositive = false
-            )
-            MovementItem(
-                name = "Jarabe pediátrico",
-                time = "11:00",
-                quantity = "+10",
-                isPositive = true
-            )
-            MovementItem(
-                name = "Ibuprofeno 400mg",
-                time = "12:30",
-                quantity = "-4",
-                isPositive = false
-            )
+            if (uiState.movimientosRecientes.isEmpty()) {
+                Text(
+                    text = "No hay movimientos registrados",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 12.dp)
+                )
+            } else {
+                val timeFormatter = remember { DateTimeFormatter.ofPattern("HH:mm") }
+                uiState.movimientosRecientes.forEach { mov ->
+                    MovementItem(
+                        name = mov.productoNombre,
+                        time = mov.fecha.format(timeFormatter),
+                        quantity = if (mov.esEntrada) "+${mov.cantidad}" else "-${mov.cantidad}",
+                        isPositive = mov.esEntrada
+                    )
+                }
+            }
         }
     }
 
@@ -283,8 +328,13 @@ fun DashboardScreen(
             title = { Text("Notificaciones") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("• Jarabe pediátrico alcanzó el stock mínimo (2 unidades restantes).")
-                    Text("• Registro de salida: Suero fisiológico (-5) realizado por Ana R.")
+                    if (uiState.alertas.isEmpty()) {
+                        Text("• No hay alertas de stock bajo en este momento.")
+                    } else {
+                        uiState.alertas.forEach { alerta ->
+                            Text("• $alerta")
+                        }
+                    }
                     Text("• Sincronización de inventario completada correctamente.")
                 }
             },
@@ -298,15 +348,20 @@ fun DashboardScreen(
 
     // Modal de detalle de alerta
     if (showAlertDetailDialog) {
+        val prod = uiState.productosCriticos.firstOrNull()
         AlertDialog(
             onDismissRequest = { showAlertDetailDialog = false },
             title = { Text("Detalle de Alerta de Stock") },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Producto: Jarabe pediátrico 120ml", fontWeight = FontWeight.Bold)
-                    Text("Existencia actual: 2 unidades")
-                    Text("Stock mínimo configurado: 10 unidades")
-                    Text("Recomendación: Registrar una entrada de reposición o contactar al proveedor.")
+                    if (prod != null) {
+                        Text("Producto: ${prod.nombre}", fontWeight = FontWeight.Bold)
+                        Text("Existencia actual: ${prod.stockActual} unidades")
+                        Text("Stock mínimo configurado: ${prod.stockMinimo} unidades")
+                        Text("Recomendación: Registrar una entrada de reposición o contactar al proveedor.")
+                    } else {
+                        Text("No hay detalles disponibles para esta alerta.")
+                    }
                 }
             },
             confirmButton = {

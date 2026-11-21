@@ -11,6 +11,8 @@ import com.inventtrack.ui.analytics.AnalyticsViewModel
 import com.inventtrack.ui.auth.LoginViewModel
 import com.inventtrack.ui.auth.RegisterViewModel
 import com.inventtrack.ui.categories.CategoryViewModel
+import com.inventtrack.ui.chatbot.ChatViewModel
+import com.inventtrack.ui.dashboard.DashboardViewModel
 import com.inventtrack.ui.history.MovementHistoryViewModel
 import com.inventtrack.ui.movements.MovementViewModel
 import com.inventtrack.ui.products.ProductFormViewModel
@@ -66,6 +68,15 @@ object AppViewModelProvider {
             val container = inventTrackContainer()
             MovementHistoryViewModel(container.movementRepository)
         }
+        initializer {
+            val container = inventTrackContainer()
+            DashboardViewModel(
+                container.authRepository,
+                container.productRepository,
+                container.movementRepository
+            )
+        }
+        initializer { ChatViewModel(inventTrackContainer().chatRepository) }
     }
 }
 
