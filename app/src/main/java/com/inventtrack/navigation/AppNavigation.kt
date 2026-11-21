@@ -9,14 +9,17 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavGraph.Companion.findStartDestination
+import androidx.navigation.NavType
 import androidx.navigation.compose.*
+import androidx.navigation.navArgument
 import com.inventtrack.di.AppViewModelProvider
+import com.inventtrack.ui.analytics.AnalyticsRoute
 import com.inventtrack.ui.auth.LoginRoute
 import com.inventtrack.ui.auth.RegisterRoute
 import com.inventtrack.ui.history.MovementHistoryRoute
-import com.inventtrack.ui.screens.*
-import com.inventtrack.ui.analytics.AnalyticsRoute
 import com.inventtrack.ui.movements.MovementRoute
+import com.inventtrack.ui.screens.*
 import com.inventtrack.ui.session.SessionViewModel
 import com.inventtrack.ui.settings.SettingsRoute
 import com.inventtrack.ui.splash.SplashDestination
@@ -45,11 +48,13 @@ fun InventTrackApp(
         if (authenticated) NavigationBar {
             tabs.forEach { (destination, label, icon) ->
                 val selected = route == destination ||
-                    (destination == Routes.PRODUCTS && route == Routes.PRODUCT_FORM) ||
+                    (destination == Routes.PRODUCTS && route?.startsWith(Routes.PRODUCT_FORM) == true) ||
                     (destination == Routes.SETTINGS && route in listOf(Routes.CATEGORIES, Routes.HISTORY, Routes.ANALYTICS))
                 NavigationBarItem(selected = selected, onClick = {
                     navController.navigate(destination) {
-                        popUpTo(Routes.HOME) { saveState = true }
+                        popUpTo(navController.graph.findStartDestination().id) {
+                            saveState = true
+                        }
                         launchSingleTop = true
                         restoreState = true
                     }
@@ -95,18 +100,26 @@ fun InventTrackApp(
                 )
             }
             composable(Routes.PRODUCTS) {
-                ProductStockRoute(
+                ProductListRoute(
                     onNavigateToAdd = { go(Routes.PRODUCT_FORM) },
-                    onNavigateToEdit = { _ -> go(Routes.PRODUCT_FORM) }
+                    onNavigateToEdit = { id -> go("${Routes.PRODUCT_FORM}?id=$id") }
                 )
             }
-            composable(Routes.PRODUCT_FORM) { 
-                ProductFormScreen(
-                    onNavigateBack = { navController.popBackStack() },
-                    onSave = { _ -> navController.popBackStack() }
-                ) 
+            composable(
+                route = "${Routes.PRODUCT_FORM}?id={id}",
+                arguments = listOf(
+                    navArgument("id") {
+                        type = NavType.StringType
+                        nullable = true
+                        defaultValue = null
+                    }
+                )
+            ) {
+                ProductFormRoute(
+                    onNavigateBack = { navController.popBackStack() }
+                )
             }
-            composable(Routes.CATEGORIES) { CategoryScreen() }
+            composable(Routes.CATEGORIES) { CategoryRoute() }
             composable(Routes.HISTORY) {
                 MovementHistoryRoute(
                     onBackClick = { navController.popBackStack() }

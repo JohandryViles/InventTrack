@@ -23,10 +23,10 @@ class MockDataSource(private val hoy: LocalDate = LocalDate.now()) {
     )
 
     fun categorias(): List<Categoria> = listOf(
-        Categoria(1, "Antibióticos"),
-        Categoria(2, "Insumos"),
-        Categoria(3, "Jarabes"),
-        Categoria(4, "Analgésicos")
+        Categoria(1, "Antibióticos", descripcion = "Medicamentos para infecciones bacterianas"),
+        Categoria(2, "Insumos", descripcion = "Material y equipo de uso clínico"),
+        Categoria(3, "Jarabes", descripcion = "Suspensiones y jarabes pediátricos"),
+        Categoria(4, "Analgésicos", descripcion = "Alivio del dolor y la fiebre")
     )
 
     fun movimientos(): List<Movimiento> {

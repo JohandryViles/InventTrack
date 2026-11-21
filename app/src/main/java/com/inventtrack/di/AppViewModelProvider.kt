@@ -1,6 +1,7 @@
 package com.inventtrack.di
 
 import androidx.lifecycle.ViewModelProvider.AndroidViewModelFactory.Companion.APPLICATION_KEY
+import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewmodel.initializer
 import androidx.lifecycle.viewmodel.viewModelFactory
@@ -9,9 +10,11 @@ import com.inventtrack.ui.MainViewModel
 import com.inventtrack.ui.analytics.AnalyticsViewModel
 import com.inventtrack.ui.auth.LoginViewModel
 import com.inventtrack.ui.auth.RegisterViewModel
+import com.inventtrack.ui.categories.CategoryViewModel
 import com.inventtrack.ui.history.MovementHistoryViewModel
 import com.inventtrack.ui.movements.MovementViewModel
-import com.inventtrack.ui.products.ProductStockViewModel
+import com.inventtrack.ui.products.ProductFormViewModel
+import com.inventtrack.ui.products.ProductListViewModel
 import com.inventtrack.ui.session.SessionViewModel
 import com.inventtrack.ui.settings.SettingsViewModel
 import com.inventtrack.ui.splash.SplashViewModel
@@ -25,7 +28,14 @@ import com.inventtrack.ui.splash.SplashViewModel
  */
 object AppViewModelProvider {
     val Factory = viewModelFactory {
-        initializer { ProductStockViewModel(inventTrackContainer().productRepository) }
+        initializer {
+            val container = inventTrackContainer()
+            ProductListViewModel(container.productRepository, container.categoryRepository)
+        }
+        initializer {
+            ProductFormViewModel(this.createSavedStateHandle(), inventTrackContainer().productRepository)
+        }
+        initializer { CategoryViewModel(inventTrackContainer().categoryRepository) }
         initializer {
             val container = inventTrackContainer()
             MovementViewModel(container.productRepository, container.movementRepository)

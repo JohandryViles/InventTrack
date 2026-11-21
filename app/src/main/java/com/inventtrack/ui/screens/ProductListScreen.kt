@@ -13,52 +13,46 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.inventtrack.data.model.Producto
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import com.inventtrack.data.model.Producto
 import com.inventtrack.di.AppViewModelProvider
-import com.inventtrack.ui.components.ObserveAsEvents
-import com.inventtrack.ui.products.ProductStockViewModel
-import kotlinx.coroutines.launch
+import com.inventtrack.ui.products.ProductListUiState
+import com.inventtrack.ui.products.ProductListViewModel
 
 @Composable
-fun ProductStockRoute(
+fun ProductListRoute(
     onNavigateToAdd: () -> Unit,
-    onNavigateToEdit: (Producto) -> Unit,
-    viewModel: ProductStockViewModel = viewModel(factory = AppViewModelProvider.Factory)
+    onNavigateToEdit: (Int) -> Unit,
+    viewModel: ProductListViewModel = viewModel(factory = AppViewModelProvider.Factory)
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val snackbar = remember { SnackbarHostState() }
-    val scope = rememberCoroutineScope()
-    ObserveAsEvents(viewModel.events) { message -> scope.launch { snackbar.showSnackbar(message) } }
-    ProductListScreen(onNavigateToAdd, onNavigateToEdit, uiState.products, viewModel::delete,
-        uiState.isLoading, uiState.error, snackbar)
+
+    ProductListScreen(
+        uiState = uiState,
+        onQueryChange = viewModel::onQueryChange,
+        onCategoryChange = viewModel::onCategoryChange,
+        onNavigateToAdd = onNavigateToAdd,
+        onNavigateToEdit = onNavigateToEdit,
+        onDeleteRequest = viewModel::onDeleteRequest,
+        onConfirmDelete = viewModel::confirmDelete,
+        onDismissDelete = { viewModel.onDeleteRequest(null) }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProductListScreen(
+    uiState: ProductListUiState,
+    onQueryChange: (String) -> Unit,
+    onCategoryChange: (String) -> Unit,
     onNavigateToAdd: () -> Unit,
-    onNavigateToEdit: (Producto) -> Unit,
-    listaProductos: List<Producto>,
-    onDelete: (Int) -> Unit,
-    isLoading: Boolean,
-    error: String?,
-    snackbar: SnackbarHostState
+    onNavigateToEdit: (Int) -> Unit,
+    onDeleteRequest: (Producto) -> Unit,
+    onConfirmDelete: () -> Unit,
+    onDismissDelete: () -> Unit
 ) {
-    var busqueda by remember { mutableStateOf("") }
-    var categoriaSeleccionada by remember { mutableStateOf("Todos") }
-    var productoAEliminar by remember { mutableStateOf<Producto?>(null) }
-
-    val categorias = listOf("Todos") + listaProductos.map { it.categoria }.distinct().sorted()
-
-    val productosFiltrados = listaProductos.filter {
-        (categoriaSeleccionada == "Todos" || it.categoria == categoriaSeleccionada) &&
-        it.nombre.contains(busqueda, ignoreCase = true)
-    }
-
     Scaffold(
-        snackbarHost = { SnackbarHost(snackbar) },
         floatingActionButton = {
             FloatingActionButton(onClick = onNavigateToAdd) {
                 Icon(Icons.Default.Add, contentDescription = "Agregar producto")
@@ -71,24 +65,20 @@ fun ProductListScreen(
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            if (isLoading) LinearProgressIndicator(Modifier.fillMaxWidth())
-            error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            // Buscador
             OutlinedTextField(
-                value = busqueda,
-                onValueChange = { busqueda = it },
+                value = uiState.query,
+                onValueChange = onQueryChange,
                 label = { Text("Buscar producto") },
                 modifier = Modifier.fillMaxWidth()
             )
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Chips de filtro por categoría
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(categorias) { categoria ->
+                items(uiState.categorias) { categoria ->
                     FilterChip(
-                        selected = categoriaSeleccionada == categoria,
-                        onClick = { categoriaSeleccionada = categoria },
+                        selected = uiState.categoriaSeleccionada == categoria,
+                        onClick = { onCategoryChange(categoria) },
                         label = { Text(categoria) }
                     )
                 }
@@ -96,45 +86,42 @@ fun ProductListScreen(
 
             Spacer(modifier = Modifier.height(12.dp))
 
-            // Lista de productos
-            LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(productosFiltrados) { producto ->
-                    ProductCard(
-                        producto = producto,
-                        onEdit = { onNavigateToEdit(producto) },
-                        onDelete = { productoAEliminar = producto }
-                    )
+            if (uiState.isLoading) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator()
+                }
+            } else {
+                LazyColumn(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(uiState.productos) { producto ->
+                        ProductCard(
+                            producto = producto,
+                            onEdit = { onNavigateToEdit(producto.id) },
+                            onDelete = { onDeleteRequest(producto) }
+                        )
+                    }
                 }
             }
         }
     }
 
-    // Diálogo de confirmación para eliminar
-    productoAEliminar?.let { producto ->
+    uiState.productoAEliminar?.let { producto ->
         AlertDialog(
-            onDismissRequest = { productoAEliminar = null },
+            onDismissRequest = onDismissDelete,
             title = { Text("Eliminar producto") },
             text = { Text("¿Estás seguro de que deseas eliminar ${producto.nombre}?") },
             confirmButton = {
-                TextButton(onClick = {
-                    onDelete(producto.id)
-                    productoAEliminar = null
-                }) {
+                TextButton(onClick = onConfirmDelete) {
                     Text("Eliminar")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { productoAEliminar = null }) {
+                TextButton(onClick = onDismissDelete) {
                     Text("Cancelar")
                 }
             }
         )
     }
 }
-
-// -------------------------------------------------------------------------
-// NOTA: Reemplazar los componentes debajo por los que haga Deny
-// -------------------------------------------------------------------------
 
 @Composable
 fun ProductCard(producto: Producto, onEdit: () -> Unit, onDelete: () -> Unit) {
@@ -155,10 +142,10 @@ fun ProductCard(producto: Producto, onEdit: () -> Unit, onDelete: () -> Unit) {
             }
             Row {
                 IconButton(onClick = onEdit) { 
-                    Icon(Icons.Default.Edit, contentDescription = "Editar producto") 
+                    Icon(Icons.Default.Edit, contentDescription = "Editar producto")
                 }
                 IconButton(onClick = onDelete) { 
-                    Icon(Icons.Default.Delete, contentDescription = "Eliminar producto") 
+                    Icon(Icons.Default.Delete, contentDescription = "Eliminar producto")
                 }
             }
         }

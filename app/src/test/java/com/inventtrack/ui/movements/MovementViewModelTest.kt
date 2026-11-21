@@ -8,7 +8,6 @@ import com.inventtrack.data.repository.fake.FakeMovementRepository
 import com.inventtrack.data.repository.fake.FakeProductRepository
 import com.inventtrack.data.source.MockDataSource
 import com.inventtrack.ui.analytics.AnalyticsViewModel
-import com.inventtrack.ui.products.ProductStockViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -99,9 +98,7 @@ class MovementViewModelTest {
     @Test
     fun exit_updatesProductsAndAnalytics_andDoubleTapRegistersOnlyOnce() = runTest(dispatcher) {
         observe()
-        val stockList = ProductStockViewModel(products)
         val analytics = AnalyticsViewModel(movements, products)
-        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { stockList.uiState.collect {} }
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { analytics.uiState.collect {} }
         advanceUntilIdle()
         assertEquals("0", analytics.uiState.value.totalOutgoing)
@@ -116,7 +113,7 @@ class MovementViewModelTest {
         assertTrue(viewModel.uiState.value.isSaving)
         advanceUntilIdle()
 
-        assertEquals(50, stockList.uiState.value.products.first { it.id == 1 }.stockActual)
+        assertEquals(50, products.getProduct(1)?.stockActual)
         assertEquals(50, viewModel.uiState.value.producto?.stockActual)
         assertEquals("10", analytics.uiState.value.totalOutgoing)
         assertEquals(10, analytics.uiState.value.outgoing.sum())

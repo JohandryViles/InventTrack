@@ -70,52 +70,5 @@ fun InventTrackTextField(
     )
 }
 
-enum class StockLevel { DISPONIBLE, BAJO, CRITICO }
 
-@Composable
-fun StatusChip(level: StockLevel) {
-    val (backgroundColor, text) = when (level) {
-        StockLevel.DISPONIBLE -> Pair(AvailableGreen, "Disponible")
-        StockLevel.BAJO -> Pair(LowOrange, "Bajo")
-        StockLevel.CRITICO -> Pair(CriticalRed, "Crítico")
-    }
 
-    Box(
-        modifier = Modifier
-            .background(color = backgroundColor.copy(alpha = 0.2f), shape = Shapes.small)
-            .padding(horizontal = 8.dp, vertical = 4.dp)
-    ) {
-        Text(
-            text = text,
-            color = backgroundColor,
-            style = MaterialTheme.typography.labelSmall,
-            fontWeight = FontWeight.Bold
-        )
-    }
-}
-
-@Composable
-fun ProductCard(name: String, stock: Int, level: StockLevel) {
-    ElevatedCard(
-        modifier = Modifier
-            .fillMaxWidth()
-            .widthIn(max = 600.dp)
-            .padding(vertical = 8.dp),
-        shape = Shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column {
-                Text(text = name, fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(text = "Stock: $stock unidades", style = MaterialTheme.typography.bodyMedium)
-            }
-            StatusChip(level = level)
-        }
-    }
-}
